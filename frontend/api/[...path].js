@@ -2,7 +2,6 @@
 // Le pattern [...path] capture toutes les routes sous /api
 // Ce fichier est dans frontend/api/ car Root Directory = frontend
 
-import serverless from '@vercel/node'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
@@ -23,24 +22,46 @@ dotenv.config()
 
 const app = express()
 
-// Middleware
-app.use(cors())
+// Gérer les requêtes OPTIONS (preflight) EN PREMIER
+app.options('*', (req, res) => {
+  const origin = req.headers.origin
+  res.header('Access-Control-Allow-Origin', origin || '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Max-Age', '86400')
+  res.status(200).end()
+})
+
+// Configuration CORS
+const corsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+}
+
+app.use(cors(corsOptions))
 app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Rate limiting
-app.use('/api/ai', rateLimiter(20, 15 * 60 * 1000))
-app.use('/api', rateLimiter(100, 15 * 60 * 1000))
+// Créer un routeur API
+const apiRouter = express.Router()
 
-// Logging middleware
-app.use((req, res, next) => {
+// Rate limiting sur le routeur API
+apiRouter.use('/ai', rateLimiter(20, 15 * 60 * 1000))
+apiRouter.use('/', rateLimiter(100, 15 * 60 * 1000))
+
+// Logging middleware sur le routeur API
+apiRouter.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`)
   next()
 })
 
 // Routes de santé
-app.get('/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Moduleia API is running',
@@ -48,28 +69,53 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Routes API
-app.use('/decks', deckRoutes)
-app.use('/cards', cardRoutes)
-app.use('/reviews', reviewRoutes)
-app.use('/ai', aiRoutes)
-app.use('/documents', documentRoutes)
-app.use('/backup', backupRoutes)
-app.use('/stats', statsRoutes)
-app.use('/profile', profileRoutes)
+// Routes API sur le routeur
+apiRouter.use('/decks', deckRoutes)
+apiRouter.use('/cards', cardRoutes)
+apiRouter.use('/reviews', reviewRoutes)
+apiRouter.use('/ai', aiRoutes)
+apiRouter.use('/documents', documentRoutes)
+apiRouter.use('/backup', backupRoutes)
+apiRouter.use('/stats', statsRoutes)
+apiRouter.use('/profile', profileRoutes)
+
+// Monter le routeur API sur /api
+app.use('/api', apiRouter)
 
 // Route 404
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' })
+  res.status(404).json({ error: 'Route not found', path: req.path })
 })
 
 // Middleware de gestion des erreurs
 app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
-// @vercel/node wrapper pour Express
-export default function handler(req, res) {
-  return serverless(app)(req, res)
+// Utiliser Express directement sans @vercel/node
+export default async function handler(req, res) {
+  // S'assurer que le Content-Type est JSON
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  
+  try {
+    console.log(`[API] ${req.method} ${req.url}`)
+    
+    // Utiliser Express directement
+    app(req, res)
+  } catch (error) {
+    console.error('[API] Serverless function error:', error)
+    
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error.message || 'An unexpected error occurred',
+        ...(process.env.NODE_ENV !== 'production' && {
+          name: error.name,
+          stack: error.stack
+        })
+      })
+    }
+  }
 }
 
 
