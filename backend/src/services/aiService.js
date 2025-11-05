@@ -44,63 +44,104 @@ if (AI_PROVIDER === 'simple') {
  * @returns {Array} Liste de cartes { question, answer }
  */
 function generateCardsSimple(text, count = 5) {
-  const sentences = text
+  // Nettoyer et segmenter le texte
+  const cleanedText = text.trim().replace(/\s+/g, ' ')
+  const sentences = cleanedText
     .split(/[.!?]\s+/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 20 && s.length < 500)
+    .filter((s) => s.length > 15 && s.length < 500)
 
   if (sentences.length === 0) {
-    throw new Error('Le texte est trop court ou ne contient pas de phrases valides')
+    throw new Error('Le texte est trop court ou ne contient pas de phrases valides (minimum 15 caractères par phrase)')
   }
 
   const cards = []
   const usedIndices = new Set()
+  const stopWords = new Set([
+    'dans', 'avec', 'pour', 'sont', 'cette', 'aussi', 'comme', 'mais', 'plus', 'tout', 'tous',
+    'toute', 'toutes', 'sans', 'sous', 'sur', 'par', 'les', 'des', 'une', 'un', 'le', 'la',
+    'qui', 'que', 'quoi', 'quand', 'où', 'comment', 'pourquoi'
+  ])
 
   // Générer des cartes à partir des phrases
-  for (let i = 0; i < Math.min(count, sentences.length); i++) {
+  const maxIterations = Math.min(count * 3, sentences.length * 2)
+  for (let iteration = 0; iteration < maxIterations && cards.length < count; iteration++) {
     let sentenceIndex
+    let attempts = 0
     do {
       sentenceIndex = Math.floor(Math.random() * sentences.length)
+      attempts++
+      if (attempts > 50) break
     } while (usedIndices.has(sentenceIndex) && usedIndices.size < sentences.length)
+
+    if (attempts > 50) break
 
     usedIndices.add(sentenceIndex)
     const sentence = sentences[sentenceIndex]
 
-    // Extraire des mots-clés ou concepts importants
+    // Extraire des mots-clés importants (noms, adjectifs)
     const words = sentence
-      .replace(/[^\w\s]/g, ' ')
+      .replace(/[^\w\sàâäéèêëïîôùûüÿç]/gi, ' ')
       .split(/\s+/)
-      .filter((w) => w.length > 4)
-      .filter((w) => !['dans', 'avec', 'pour', 'sont', 'cette', 'cette', 'aussi', 'comme'].includes(w.toLowerCase()))
+      .map((w) => w.toLowerCase().trim())
+      .filter((w) => w.length > 4 && !stopWords.has(w))
+      .filter((w) => /^[a-zàâäéèêëïîôùûüÿç]+$/i.test(w)) // Uniquement des mots (pas de nombres)
 
     if (words.length === 0) continue
 
-    // Créer une question basée sur la phrase
-    const keyword = words[Math.floor(Math.random() * Math.min(words.length, 3))]
-    const question = `Qu'est-ce que ${keyword} ?` || `Quel est le rôle de ${keyword} ?`
+    // Sélectionner un mot-clé important (priorité aux mots plus longs)
+    const sortedWords = words.sort((a, b) => b.length - a.length)
+    const keyword = sortedWords[0] || words[0]
 
-    // Réponse : la phrase complète ou une version simplifiée
+    // Générer différents types de questions
+    const questionTypes = [
+      `Qu'est-ce que ${keyword} ?`,
+      `Définissez ${keyword}`,
+      `Expliquez ${keyword}`,
+      `Quel est le rôle de ${keyword} ?`,
+      `Quelle est l'importance de ${keyword} ?`,
+    ]
+
+    const question = questionTypes[Math.floor(Math.random() * questionTypes.length)]
+    
+    // Réponse : la phrase complète (truncée si nécessaire)
     let answer = sentence
-    if (answer.length > 200) {
-      answer = answer.substring(0, 197) + '...'
+    if (answer.length > 250) {
+      answer = answer.substring(0, 247) + '...'
     }
 
     cards.push({
-      question: question || `Question sur : ${sentence.substring(0, 50)}...`,
-      answer: answer || sentence,
+      question: question,
+      answer: answer,
     })
   }
 
-  // Si on n'a pas assez de cartes, créer des cartes à partir de définitions simples
-  while (cards.length < count && cards.length < sentences.length * 2) {
-    const sentence = sentences[Math.floor(Math.random() * sentences.length)]
-    const words = sentence.split(/\s+/).filter((w) => w.length > 5)
+  // Si on n'a pas assez de cartes, créer des cartes de définition
+  if (cards.length < count) {
+    const allWords = cleanedText
+      .replace(/[^\w\sàâäéèêëïîôùûüÿç]/gi, ' ')
+      .split(/\s+/)
+      .map((w) => w.toLowerCase().trim())
+      .filter((w) => w.length > 5 && !stopWords.has(w))
+      .filter((w) => /^[a-zàâäéèêëïîôùûüÿç]+$/i.test(w))
 
-    if (words.length > 0) {
-      const term = words[0]
+    const uniqueWords = [...new Set(allWords)]
+    
+    for (let i = cards.length; i < count && uniqueWords.length > 0; i++) {
+      const word = uniqueWords[Math.floor(Math.random() * uniqueWords.length)]
+      const wordIndex = uniqueWords.indexOf(word)
+      uniqueWords.splice(wordIndex, 1)
+
+      // Trouver une phrase contenant ce mot
+      const containingSentence = sentences.find((s) => 
+        s.toLowerCase().includes(word)
+      ) || sentences[Math.floor(Math.random() * sentences.length)]
+
       cards.push({
-        question: `Définissez : ${term}`,
-        answer: sentence.length > 200 ? sentence.substring(0, 197) + '...' : sentence,
+        question: `Qu'est-ce que ${word} ?`,
+        answer: containingSentence.length > 250 
+          ? containingSentence.substring(0, 247) + '...' 
+          : containingSentence,
       })
     }
   }
