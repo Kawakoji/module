@@ -7,5 +7,13 @@
       "source": "/((?!api).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/[...path].js": {
+      "runtime": "nodejs20.x"
+    },
+    "frontend/api/[...path].js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
