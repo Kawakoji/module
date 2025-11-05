@@ -6,11 +6,21 @@ import { supabase } from '../contexts/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
+// Vérifier que l'URL de l'API est configurée
+if (!import.meta.env.VITE_API_URL && import.meta.env.PROD) {
+  console.warn('[API] VITE_API_URL is not set in production! API calls will fail.')
+}
+
 // Normaliser l'URL pour éviter les doubles slashes
 const normalizeUrl = (baseUrl, endpoint) => {
   const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
   return `${base}${path}`
+}
+
+// Log l'URL de l'API au chargement (seulement en dev)
+if (import.meta.env.DEV) {
+  console.log('[API] API_URL:', API_URL)
 }
 
 /**
@@ -43,27 +53,53 @@ async function request(endpoint, options = {}) {
   }
 
   try {
+    console.log(`[API] Fetching: ${url}`, { method: config.method || 'GET' })
     const response = await fetch(url, config)
+    
+    console.log(`[API] Response status: ${response.status}`, { url })
     
     // Si la réponse est vide (204), retourner null
     if (response.status === 204) {
       return null
     }
 
-    const data = await response.json()
+    // Vérifier si la réponse est du JSON
+    const contentType = response.headers.get('content-type')
+    let data
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      // Si ce n'est pas du JSON, lire le texte
+      const text = await response.text()
+      console.error('[API] Non-JSON response:', text.substring(0, 200))
+      throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`)
+    }
 
     // Si la réponse n'est pas OK, lancer une erreur
     if (!response.ok) {
       // Si erreur 401, rediriger vers la page de connexion
       if (response.status === 401) {
         window.location.href = '/login'
+        return
       }
-      throw new Error(data.error || `HTTP error! status: ${response.status}`)
+      throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`)
     }
 
     return data
   } catch (error) {
-    console.error('API Error:', error)
+    console.error('[API] Error details:', {
+      url,
+      method: config.method || 'GET',
+      error: error.message,
+      name: error.name,
+      stack: error.stack
+    })
+    
+    // Améliorer le message d'erreur
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error(`Cannot connect to API at ${url}. Please check if the server is running and VITE_API_URL is correct.`)
+    }
+    
     throw error
   }
 }
