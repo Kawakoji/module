@@ -4,18 +4,108 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 /**
- * Service pour l'intégration OpenAI
+ * Service pour l'intégration IA
+ * Supporte : OpenAI, Hugging Face (gratuit), et génération simple (sans IA)
  */
+
+// Configuration des providers
+const AI_PROVIDER = process.env.AI_PROVIDER || 'simple' // 'openai', 'huggingface', 'simple'
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY
 
 // Initialiser le client OpenAI
 let openai = null
-
-if (process.env.OPENAI_API_KEY) {
+if (OPENAI_API_KEY && AI_PROVIDER === 'openai') {
   openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: OPENAI_API_KEY,
   })
-} else {
-  console.warn('⚠️  OPENAI_API_KEY not found. AI features will be disabled.')
+  console.log('✅ OpenAI client initialized')
+} else if (AI_PROVIDER === 'openai') {
+  console.warn('⚠️  OPENAI_API_KEY not found. OpenAI features will be disabled.')
+}
+
+// Initialiser Hugging Face (optionnel)
+let huggingFaceAvailable = false
+if (HUGGINGFACE_API_KEY && AI_PROVIDER === 'huggingface') {
+  huggingFaceAvailable = true
+  console.log('✅ Hugging Face API available')
+} else if (AI_PROVIDER === 'huggingface') {
+  console.warn('⚠️  HUGGINGFACE_API_KEY not found. Using simple generation instead.')
+}
+
+if (AI_PROVIDER === 'simple') {
+  console.log('✅ Using simple rule-based generation (free, no API key needed)')
+}
+
+/**
+ * Génération simple basée sur des règles (gratuit, sans IA)
+ * @param {string} text - Le texte source
+ * @param {number} count - Nombre de cartes à générer
+ * @returns {Array} Liste de cartes { question, answer }
+ */
+function generateCardsSimple(text, count = 5) {
+  const sentences = text
+    .split(/[.!?]\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 20 && s.length < 500)
+
+  if (sentences.length === 0) {
+    throw new Error('Le texte est trop court ou ne contient pas de phrases valides')
+  }
+
+  const cards = []
+  const usedIndices = new Set()
+
+  // Générer des cartes à partir des phrases
+  for (let i = 0; i < Math.min(count, sentences.length); i++) {
+    let sentenceIndex
+    do {
+      sentenceIndex = Math.floor(Math.random() * sentences.length)
+    } while (usedIndices.has(sentenceIndex) && usedIndices.size < sentences.length)
+
+    usedIndices.add(sentenceIndex)
+    const sentence = sentences[sentenceIndex]
+
+    // Extraire des mots-clés ou concepts importants
+    const words = sentence
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 4)
+      .filter((w) => !['dans', 'avec', 'pour', 'sont', 'cette', 'cette', 'aussi', 'comme'].includes(w.toLowerCase()))
+
+    if (words.length === 0) continue
+
+    // Créer une question basée sur la phrase
+    const keyword = words[Math.floor(Math.random() * Math.min(words.length, 3))]
+    const question = `Qu'est-ce que ${keyword} ?` || `Quel est le rôle de ${keyword} ?`
+
+    // Réponse : la phrase complète ou une version simplifiée
+    let answer = sentence
+    if (answer.length > 200) {
+      answer = answer.substring(0, 197) + '...'
+    }
+
+    cards.push({
+      question: question || `Question sur : ${sentence.substring(0, 50)}...`,
+      answer: answer || sentence,
+    })
+  }
+
+  // Si on n'a pas assez de cartes, créer des cartes à partir de définitions simples
+  while (cards.length < count && cards.length < sentences.length * 2) {
+    const sentence = sentences[Math.floor(Math.random() * sentences.length)]
+    const words = sentence.split(/\s+/).filter((w) => w.length > 5)
+
+    if (words.length > 0) {
+      const term = words[0]
+      cards.push({
+        question: `Définissez : ${term}`,
+        answer: sentence.length > 200 ? sentence.substring(0, 197) + '...' : sentence,
+      })
+    }
+  }
+
+  return cards.slice(0, count)
 }
 
 /**
@@ -25,8 +115,14 @@ if (process.env.OPENAI_API_KEY) {
  * @returns {Promise<Array>} Liste de cartes { question, answer }
  */
 export async function generateCardsFromText(text, count = 5) {
+  // Utiliser la génération simple si OpenAI n'est pas configuré
+  if (!openai && AI_PROVIDER !== 'openai') {
+    console.log('📝 Using simple rule-based generation (free)')
+    return generateCardsSimple(text, count)
+  }
+
   if (!openai) {
-    throw new Error('OpenAI API key not configured')
+    throw new Error('OpenAI API key not configured. Set AI_PROVIDER=simple for free generation.')
   }
 
   if (!text || !text.trim()) {
@@ -156,14 +252,51 @@ Génère exactement ${count} cartes au format JSON.`
 }
 
 /**
+ * Génération simple à partir d'un sujet (gratuit, sans IA)
+ * @param {string} topic - Le sujet
+ * @param {number} count - Nombre de cartes
+ * @returns {Array} Liste de cartes
+ */
+function generateCardsFromTopicSimple(topic, count = 5) {
+  // Générer des questions basiques sur le sujet
+  const questionTemplates = [
+    `Qu'est-ce que ${topic} ?`,
+    `Quel est l'historique de ${topic} ?`,
+    `Quels sont les concepts clés de ${topic} ?`,
+    `Comment fonctionne ${topic} ?`,
+    `Quelles sont les caractéristiques principales de ${topic} ?`,
+    `Quels sont les éléments importants de ${topic} ?`,
+    `Définissez ${topic}`,
+    `Expliquez ${topic}`,
+  ]
+
+  const cards = []
+  for (let i = 0; i < count; i++) {
+    const template = questionTemplates[i % questionTemplates.length]
+    cards.push({
+      question: template,
+      answer: `Informations sur ${topic}. Pour obtenir des réponses détaillées, utilisez un texte source ou configurez une clé API OpenAI.`,
+    })
+  }
+
+  return cards
+}
+
+/**
  * Générer des cartes à partir d'un sujet
  * @param {string} topic - Le sujet (ex: "Histoire de la Révolution française")
  * @param {number} count - Nombre de cartes (optionnel)
  * @returns {Promise<Array>} Liste de cartes
  */
 export async function generateCardsFromTopic(topic, count = 5) {
+  // Utiliser la génération simple si OpenAI n'est pas configuré
+  if (!openai && AI_PROVIDER !== 'openai') {
+    console.log('📝 Using simple rule-based generation (free)')
+    return generateCardsFromTopicSimple(topic, count)
+  }
+
   if (!openai) {
-    throw new Error('OpenAI API key not configured')
+    throw new Error('OpenAI API key not configured. Set AI_PROVIDER=simple for free generation.')
   }
 
   const prompt = `Crée ${count} cartes flashcard éducatives sur le sujet : "${topic}"
