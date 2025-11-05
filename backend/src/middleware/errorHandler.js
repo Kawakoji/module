@@ -10,6 +10,12 @@ import {
 } from '../utils/errors.js'
 
 export const errorHandler = (err, req, res, next) => {
+  // Ne pas envoyer de réponse si elle a déjà été envoyée
+  if (res.headersSent) {
+    console.error('[ErrorHandler] Headers already sent, cannot send error response')
+    return next(err)
+  }
+
   // S'assurer que le Content-Type est JSON
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   
@@ -20,12 +26,6 @@ export const errorHandler = (err, req, res, next) => {
     code: err.code,
     details: err.details || err.hint,
   })
-
-  // Ne pas envoyer de réponse si elle a déjà été envoyée
-  if (res.headersSent) {
-    console.error('[ErrorHandler] Headers already sent, cannot send error response')
-    return next(err)
-  }
 
   // Erreurs personnalisées
   if (err instanceof ValidationError) {
@@ -57,27 +57,48 @@ export const errorHandler = (err, req, res, next) => {
     })
   }
 
-  // Erreur Supabase
-  if (err.code && err.code.startsWith('PGRST')) {
-    // Erreur de contrainte unique
-    if (err.message.includes('duplicate key')) {
+  // Erreur Supabase / PostgREST
+  if (err.code && (err.code.startsWith('PGRST') || err.code === '23505' || err.code === '23503')) {
+    // Erreur de contrainte unique (code 23505)
+    if (err.code === '23505' || err.message?.includes('duplicate key')) {
       return res.status(409).json({
         error: 'Conflict',
         message: 'Cette ressource existe déjà',
       })
     }
 
+    // Erreur de clé étrangère (code 23503)
+    if (err.code === '23503' || err.message?.includes('foreign key')) {
+      return res.status(400).json({
+        error: 'Invalid Reference',
+        message: 'Référence invalide',
+      })
+    }
+
     // Ressource non trouvée
-    if (err.message.includes('No rows found')) {
+    if (err.message?.includes('No rows found') || err.message?.includes('no rows')) {
       return res.status(404).json({
         error: 'Not Found',
         message: 'Ressource introuvable',
       })
     }
 
+    // Erreur de contrainte de validation
+    if (err.message?.includes('violates check constraint')) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Les données ne respectent pas les contraintes',
+      })
+    }
+
     return res.status(400).json({
       error: 'Database Error',
-      message: err.message,
+      message: err.message || 'Erreur de base de données',
+      ...(process.env.NODE_ENV !== 'production' && {
+        code: err.code,
+        details: err.details,
+        hint: err.hint,
+      }),
     })
   }
 

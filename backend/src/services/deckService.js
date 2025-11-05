@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase.js'
 import { NotFoundError } from '../utils/errors.js'
+import { validators } from '../utils/validation.js'
 
 /**
  * Service pour gérer les decks
@@ -78,31 +79,53 @@ export const deckService = {
    * @returns {Promise<Object>} Le deck créé
    */
   async createDeck(deckData) {
-    const { validators } = await import('../utils/validation.js')
-    const { name, description, user_id } = deckData
+    try {
+      const { name, description, user_id } = deckData
 
-    // Validation
-    const validatedName = validators.validateDeckName(name)
-    const validatedDescription = validators.validateDeckDescription(description)
-    validators.validateUUID(user_id, 'User ID')
+      // Validation
+      const validatedName = validators.validateDeckName(name)
+      const validatedDescription = validators.validateDeckDescription(description)
+      validators.validateUUID(user_id, 'User ID')
 
-    const deck = {
-      name: validatedName,
-      description: validatedDescription,
-      user_id,
+      const deck = {
+        name: validatedName,
+        description: validatedDescription,
+        user_id,
+      }
+
+      const { data, error } = await supabase
+        .from('decks')
+        .insert([deck])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DeckService] Supabase error creating deck:', error)
+        // Préserver les erreurs de validation
+        if (error.code && error.code.startsWith('PGRST')) {
+          throw error
+        }
+        throw new Error(`Error creating deck: ${error.message}`)
+      }
+
+      if (!data) {
+        throw new Error('No data returned from database')
+      }
+
+      return data
+    } catch (error) {
+      // Si c'est déjà une ValidationError, la relancer telle quelle
+      if (error.name === 'ValidationError') {
+        throw error
+      }
+      // Si c'est une erreur Supabase, la relancer telle quelle pour que errorHandler la gère
+      if (error.code && error.code.startsWith('PGRST')) {
+        throw error
+      }
+      // Sinon, encapsuler dans une nouvelle erreur
+      console.error('[DeckService] Error in createDeck:', error)
+      throw error
     }
-
-    const { data, error } = await supabase
-      .from('decks')
-      .insert([deck])
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Error creating deck: ${error.message}`)
-    }
-
-    return data
   },
 
   /**
@@ -112,7 +135,6 @@ export const deckService = {
    * @returns {Promise<Object>} Le deck mis à jour
    */
   async updateDeck(deckId, updates) {
-    const { validators } = await import('../utils/validation.js')
     const { name, description } = updates
 
     const updateData = {}

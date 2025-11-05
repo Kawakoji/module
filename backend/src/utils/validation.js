@@ -2,27 +2,29 @@
  * Utilitaires de validation
  */
 
+import { ValidationError } from './errors.js'
+
 export const validators = {
   /**
    * Valider un nom de deck
    */
   validateDeckName(name) {
     if (!name || typeof name !== 'string') {
-      throw new Error('Le nom du deck est requis')
+      throw new ValidationError('Le nom du deck est requis', 'name')
     }
 
     const trimmed = name.trim()
 
     if (trimmed.length === 0) {
-      throw new Error('Le nom du deck ne peut pas être vide')
+      throw new ValidationError('Le nom du deck ne peut pas être vide', 'name')
     }
 
     if (trimmed.length < 2) {
-      throw new Error('Le nom du deck doit contenir au moins 2 caractères')
+      throw new ValidationError('Le nom du deck doit contenir au moins 2 caractères', 'name')
     }
 
     if (trimmed.length > 100) {
-      throw new Error('Le nom du deck ne peut pas dépasser 100 caractères')
+      throw new ValidationError('Le nom du deck ne peut pas dépasser 100 caractères', 'name')
     }
 
     return trimmed
@@ -37,13 +39,13 @@ export const validators = {
     }
 
     if (typeof description !== 'string') {
-      throw new Error('La description doit être une chaîne de caractères')
+      throw new ValidationError('La description doit être une chaîne de caractères', 'description')
     }
 
     const trimmed = description.trim()
 
     if (trimmed.length > 500) {
-      throw new Error('La description ne peut pas dépasser 500 caractères')
+      throw new ValidationError('La description ne peut pas dépasser 500 caractères', 'description')
     }
 
     return trimmed || null
@@ -54,21 +56,21 @@ export const validators = {
    */
   validateCardQuestion(question) {
     if (!question || typeof question !== 'string') {
-      throw new Error('La question est requise')
+      throw new ValidationError('La question est requise', 'question')
     }
 
     const trimmed = question.trim()
 
     if (trimmed.length === 0) {
-      throw new Error('La question ne peut pas être vide')
+      throw new ValidationError('La question ne peut pas être vide', 'question')
     }
 
     if (trimmed.length < 3) {
-      throw new Error('La question doit contenir au moins 3 caractères')
+      throw new ValidationError('La question doit contenir au moins 3 caractères', 'question')
     }
 
     if (trimmed.length > 1000) {
-      throw new Error('La question ne peut pas dépasser 1000 caractères')
+      throw new ValidationError('La question ne peut pas dépasser 1000 caractères', 'question')
     }
 
     return trimmed
@@ -79,21 +81,21 @@ export const validators = {
    */
   validateCardAnswer(answer) {
     if (!answer || typeof answer !== 'string') {
-      throw new Error('La réponse est requise')
+      throw new ValidationError('La réponse est requise', 'answer')
     }
 
     const trimmed = answer.trim()
 
     if (trimmed.length === 0) {
-      throw new Error('La réponse ne peut pas être vide')
+      throw new ValidationError('La réponse ne peut pas être vide', 'answer')
     }
 
     if (trimmed.length < 1) {
-      throw new Error('La réponse doit contenir au moins 1 caractère')
+      throw new ValidationError('La réponse doit contenir au moins 1 caractère', 'answer')
     }
 
     if (trimmed.length > 2000) {
-      throw new Error('La réponse ne peut pas dépasser 2000 caractères')
+      throw new ValidationError('La réponse ne peut pas dépasser 2000 caractères', 'answer')
     }
 
     return trimmed
@@ -104,14 +106,14 @@ export const validators = {
    */
   validateUUID(uuid, fieldName = 'ID') {
     if (!uuid || typeof uuid !== 'string') {
-      throw new Error(`${fieldName} est requis`)
+      throw new ValidationError(`${fieldName} est requis`, fieldName.toLowerCase())
     }
 
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
     if (!uuidRegex.test(uuid)) {
-      throw new Error(`${fieldName} n'est pas un UUID valide`)
+      throw new ValidationError(`${fieldName} n'est pas un UUID valide`, fieldName.toLowerCase())
     }
 
     return uuid
