@@ -9,12 +9,19 @@ import { cleanupUpload } from '../middleware/upload.js'
 
 /**
  * Extraire le texte d'un fichier PDF
- * @param {string} filePath - Chemin vers le fichier PDF
+ * @param {string|Buffer} filePathOrBuffer - Chemin vers le fichier PDF ou Buffer
  * @returns {Promise<string>} Texte extrait
  */
-export async function extractTextFromPDF(filePath) {
+export async function extractTextFromPDF(filePathOrBuffer) {
   try {
-    const dataBuffer = fs.readFileSync(filePath)
+    let dataBuffer
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      // Memory storage: utiliser directement le buffer
+      dataBuffer = filePathOrBuffer
+    } else {
+      // Disk storage: lire le fichier
+      dataBuffer = fs.readFileSync(filePathOrBuffer)
+    }
     const data = await pdfParse(dataBuffer)
 
     // Retourner le texte extrait
@@ -26,13 +33,18 @@ export async function extractTextFromPDF(filePath) {
 
 /**
  * Extraire le texte d'un fichier texte
- * @param {string} filePath - Chemin vers le fichier
+ * @param {string|Buffer} filePathOrBuffer - Chemin vers le fichier ou Buffer
  * @returns {Promise<string>} Texte extrait
  */
-export async function extractTextFromTextFile(filePath) {
+export async function extractTextFromTextFile(filePathOrBuffer) {
   try {
-    const text = fs.readFileSync(filePath, 'utf-8')
-    return text
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      // Memory storage: convertir le buffer en texte
+      return filePathOrBuffer.toString('utf-8')
+    } else {
+      // Disk storage: lire le fichier
+      return fs.readFileSync(filePathOrBuffer, 'utf-8')
+    }
   } catch (error) {
     throw new Error(`Erreur lors de la lecture du fichier : ${error.message}`)
   }
@@ -40,27 +52,41 @@ export async function extractTextFromTextFile(filePath) {
 
 /**
  * Extraire le texte d'un document (détecte automatiquement le type)
- * @param {string} filePath - Chemin vers le fichier
+ * @param {string|Buffer} filePathOrBuffer - Chemin vers le fichier ou Buffer
  * @param {string} mimeType - Type MIME du fichier
+ * @param {string} originalName - Nom original du fichier (pour l'extension)
  * @returns {Promise<string>} Texte extrait
  */
-export async function extractTextFromDocument(filePath, mimeType) {
-  const fileExt = path.extname(filePath).toLowerCase()
+export async function extractTextFromDocument(filePathOrBuffer, mimeType, originalName = null) {
+  // Déterminer l'extension du fichier
+  let fileExt = ''
+  if (Buffer.isBuffer(filePathOrBuffer)) {
+    // Memory storage: utiliser originalName pour l'extension
+    if (originalName) {
+      fileExt = path.extname(originalName).toLowerCase()
+    }
+  } else {
+    // Disk storage: utiliser le chemin
+    fileExt = path.extname(filePathOrBuffer).toLowerCase()
+  }
 
   try {
     if (fileExt === '.pdf' || mimeType === 'application/pdf') {
-      return await extractTextFromPDF(filePath)
+      return await extractTextFromPDF(filePathOrBuffer)
     } else if (
       ['.txt', '.md'].includes(fileExt) ||
       mimeType?.startsWith('text/')
     ) {
-      return await extractTextFromTextFile(filePath)
+      return await extractTextFromTextFile(filePathOrBuffer)
     } else {
-      throw new Error(`Type de fichier non supporté : ${fileExt}`)
+      throw new Error(`Type de fichier non supporté : ${fileExt || mimeType}`)
     }
   } finally {
-    // Nettoyer le fichier temporaire après extraction
-    cleanupUpload(filePath)
+    // Nettoyer le fichier temporaire après extraction (seulement si c'est un chemin)
+    if (typeof filePathOrBuffer === 'string') {
+      cleanupUpload(filePathOrBuffer)
+    }
+    // Avec memory storage, le buffer est automatiquement libéré par le GC
   }
 }
 

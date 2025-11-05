@@ -38,9 +38,12 @@ export const documentController = {
       }
 
       // Extraire le texte du document
+      // Support à la fois disk storage (req.file.path) et memory storage (req.file.buffer)
+      const fileInput = req.file.buffer || req.file.path
       const extractedText = await extractTextFromDocument(
-        req.file.path,
-        req.file.mimetype
+        fileInput,
+        req.file.mimetype,
+        req.file.originalname
       )
 
       // Nettoyer le texte
@@ -137,9 +140,12 @@ export const documentController = {
       }
 
       // Extraire le texte
+      // Support à la fois disk storage (req.file.path) et memory storage (req.file.buffer)
+      const fileInput = req.file.buffer || req.file.path
       const extractedText = await extractTextFromDocument(
-        req.file.path,
-        req.file.mimetype
+        fileInput,
+        req.file.mimetype,
+        req.file.originalname
       )
       const cleanedText = cleanExtractedText(extractedText)
 
