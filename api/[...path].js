@@ -43,6 +43,9 @@ const corsOptions = {
   exposedHeaders: ['Content-Length', 'Content-Type'],
 }
 
+// Middleware CORS - appliqué à toutes les routes
+app.use(cors(corsOptions))
+
 // Middleware pour s'assurer que toutes les réponses sont en JSON
 app.use((req, res, next) => {
   // Wrapper pour garantir JSON
@@ -56,27 +59,20 @@ app.use((req, res, next) => {
   }
   
   res.send = function(data) {
-    // Si c'est déjà une string qui ressemble à du JSON, garder le Content-Type JSON
-    if (typeof data === 'string') {
-      try {
-        JSON.parse(data)
-        res.setHeader('Content-Type', 'application/json; charset=utf-8')
-      } catch {
-        // Si ce n'est pas du JSON valide, on le convertit en JSON
-        res.setHeader('Content-Type', 'application/json; charset=utf-8')
-        return originalJson.call(this, { message: data })
-      }
-    } else {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    if (typeof data === 'string' && !data.startsWith('{') && !data.startsWith('[')) {
+      return originalJson.call(this, { message: data })
     }
     return originalSend.call(this, data)
   }
   
+  res.status = function(code) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    return originalStatus.call(this, code)
+  }
+  
   next()
 })
-
-// Middleware CORS - appliqué à toutes les routes
-app.use(cors(corsOptions))
 
 // Middleware de compression
 app.use(compression())
@@ -132,12 +128,29 @@ app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
 // @vercel/node wrapper pour Express
-const handler = serverless(app)
+let handler
+try {
+  handler = serverless(app)
+} catch (error) {
+  console.error('[API] Failed to create serverless handler:', error)
+  // Créer un handler de fallback
+  handler = async (req, res) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    res.status(500).json({
+      error: 'Server initialization error',
+      message: error.message || 'Failed to initialize server'
+    })
+  }
+}
 
 export default async function (req, res) {
-  // S'assurer que toutes les réponses sont en JSON
+  // S'assurer immédiatement que le Content-Type est JSON
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  
+  // Wrapper pour garantir JSON
   const originalJson = res.json
   const originalSend = res.send
+  const originalStatus = res.status
   
   res.json = function(data) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -151,6 +164,11 @@ export default async function (req, res) {
     }
     return originalSend.call(this, data)
   }
+  
+  res.status = function(code) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    return originalStatus.call(this, code)
+  }
 
   try {
     console.log(`[API] ${req.method} ${req.url}`, {
@@ -158,6 +176,7 @@ export default async function (req, res) {
       body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
     })
     
+    // Appeler le handler et attendre le résultat
     const result = await handler(req, res)
     
     // Si la réponse n'a pas été envoyée et qu'on a un résultat, l'envoyer
