@@ -44,6 +44,17 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 app.use(compression())
+
+// Middleware de debug pour toutes les requêtes
+app.use((req, res, next) => {
+  console.log(`[Express App] ${req.method} ${req.url}`, {
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    path: req.path
+  })
+  next()
+})
+
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
@@ -56,7 +67,11 @@ apiRouter.use('/', rateLimiter(100, 15 * 60 * 1000))
 
 // Logging middleware sur le routeur API
 apiRouter.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`)
+  console.log(`[API Router] ${req.method} ${req.path}`, {
+    url: req.url,
+    baseUrl: req.baseUrl,
+    originalUrl: req.originalUrl
+  })
   next()
 })
 
@@ -97,7 +112,16 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   
   try {
-    console.log(`[API] ${req.method} ${req.url}`)
+    // Log détaillé pour debug
+    console.log(`[API Handler] ${req.method} ${req.url}`, {
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      path: req.path,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers['authorization'] ? 'present' : 'missing'
+      }
+    })
     
     // Utiliser Express directement
     app(req, res)

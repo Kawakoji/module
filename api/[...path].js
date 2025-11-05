@@ -45,6 +45,16 @@ const corsOptions = {
 // Middleware CORS - appliqué à toutes les routes
 app.use(cors(corsOptions))
 
+// Middleware de debug pour toutes les requêtes
+app.use((req, res, next) => {
+  console.log(`[Express App] ${req.method} ${req.url}`, {
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    path: req.path
+  })
+  next()
+})
+
 // Middleware pour s'assurer que toutes les réponses sont en JSON
 app.use((req, res, next) => {
   // Wrapper pour garantir JSON
@@ -89,7 +99,11 @@ apiRouter.use('/', rateLimiter(100, 15 * 60 * 1000))
 
 // Logging middleware sur le routeur API
 apiRouter.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`)
+  console.log(`[API Router] ${req.method} ${req.path}`, {
+    url: req.url,
+    baseUrl: req.baseUrl,
+    originalUrl: req.originalUrl
+  })
   next()
 })
 
@@ -153,8 +167,15 @@ export default async function (req, res) {
   }
 
   try {
-    console.log(`[API] ${req.method} ${req.url}`, {
-      headers: req.headers,
+    // Log détaillé pour debug
+    console.log(`[API Handler] ${req.method} ${req.url}`, {
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      path: req.path,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers['authorization'] ? 'present' : 'missing'
+      },
       body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
     })
     
