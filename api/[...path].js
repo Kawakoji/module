@@ -100,5 +100,18 @@ app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
 // @vercel/node wrapper pour Express
-export default serverless(app)
+export default async function handler(req, res) {
+  try {
+    return await serverless(app)(req, res)
+  } catch (error) {
+    console.error('Serverless function error:', error)
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      })
+    }
+  }
+}
 
