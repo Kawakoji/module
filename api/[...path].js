@@ -80,26 +80,21 @@ app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Rate limiting - exclure OPTIONS
-const rateLimitMiddleware = (req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    return next()
-  }
-  next()
-}
+// Créer un routeur API
+const apiRouter = express.Router()
 
-app.use(rateLimitMiddleware)
-app.use('/ai', rateLimiter(20, 15 * 60 * 1000))
-app.use('/', rateLimiter(100, 15 * 60 * 1000))
+// Rate limiting sur le routeur API
+apiRouter.use('/ai', rateLimiter(20, 15 * 60 * 1000))
+apiRouter.use('/', rateLimiter(100, 15 * 60 * 1000))
 
-// Logging middleware
-app.use((req, res, next) => {
+// Logging middleware sur le routeur API
+apiRouter.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`)
   next()
 })
 
 // Routes de santé
-app.get('/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Moduleia API is running',
@@ -107,15 +102,18 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Routes API (sans le préfixe /api car on est déjà dans /api)
-app.use('/decks', deckRoutes)
-app.use('/cards', cardRoutes)
-app.use('/reviews', reviewRoutes)
-app.use('/ai', aiRoutes)
-app.use('/documents', documentRoutes)
-app.use('/backup', backupRoutes)
-app.use('/stats', statsRoutes)
-app.use('/profile', profileRoutes)
+// Routes API sur le routeur
+apiRouter.use('/decks', deckRoutes)
+apiRouter.use('/cards', cardRoutes)
+apiRouter.use('/reviews', reviewRoutes)
+apiRouter.use('/ai', aiRoutes)
+apiRouter.use('/documents', documentRoutes)
+apiRouter.use('/backup', backupRoutes)
+apiRouter.use('/stats', statsRoutes)
+apiRouter.use('/profile', profileRoutes)
+
+// Monter le routeur API sur /api
+app.use('/api', apiRouter)
 
 // Route 404
 app.use((req, res) => {
