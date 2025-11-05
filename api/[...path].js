@@ -1,7 +1,6 @@
 // Handler Vercel catch-all pour toutes les routes /api/*
 // Le pattern [...path] capture toutes les routes sous /api
 
-import serverless from '@vercel/node'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
@@ -127,22 +126,7 @@ app.use((req, res) => {
 app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
-// @vercel/node wrapper pour Express
-let handler
-try {
-  handler = serverless(app)
-} catch (error) {
-  console.error('[API] Failed to create serverless handler:', error)
-  // Créer un handler de fallback
-  handler = async (req, res) => {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    res.status(500).json({
-      error: 'Server initialization error',
-      message: error.message || 'Failed to initialize server'
-    })
-  }
-}
-
+// Utiliser Express directement sans @vercel/node
 export default async function (req, res) {
   // S'assurer immédiatement que le Content-Type est JSON
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -176,16 +160,9 @@ export default async function (req, res) {
       body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
     })
     
-    // Appeler le handler et attendre le résultat
-    const result = await handler(req, res)
-    
-    // Si la réponse n'a pas été envoyée et qu'on a un résultat, l'envoyer
-    if (!res.headersSent && result) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8')
-      return res.json(result)
-    }
-    
-    return result
+    // Utiliser Express directement
+    // Express peut être appelé comme fonction
+    app(req, res)
   } catch (error) {
     console.error('[API] Serverless function error:', error)
     console.error('[API] Error name:', error.name)
