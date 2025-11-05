@@ -9,19 +9,29 @@ dotenv.config()
  */
 
 // Configuration des providers
-const AI_PROVIDER = process.env.AI_PROVIDER || 'simple' // 'openai', 'huggingface', 'simple'
+// Par défaut, on essaie OpenAI si disponible, sinon on utilise la génération simple
+const AI_PROVIDER = process.env.AI_PROVIDER // 'openai', 'huggingface', 'simple', ou auto-détection
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY
 
 // Initialiser le client OpenAI
 let openai = null
-if (OPENAI_API_KEY && AI_PROVIDER === 'openai') {
-  openai = new OpenAI({
-    apiKey: OPENAI_API_KEY,
-  })
-  console.log('✅ OpenAI client initialized')
-} else if (AI_PROVIDER === 'openai') {
-  console.warn('⚠️  OPENAI_API_KEY not found. OpenAI features will be disabled.')
+let useOpenAI = false
+
+if (OPENAI_API_KEY) {
+  // Si une clé OpenAI est fournie, l'utiliser (même si AI_PROVIDER n'est pas défini)
+  if (!AI_PROVIDER || AI_PROVIDER === 'openai') {
+    openai = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+    })
+    useOpenAI = true
+    console.log('✅ OpenAI client initialized (using free credits)')
+  }
+} else {
+  if (AI_PROVIDER === 'openai') {
+    console.warn('⚠️  OPENAI_API_KEY not found. OpenAI features will be disabled.')
+    console.warn('💡 Get free $5 credits at: https://platform.openai.com/api-keys')
+  }
 }
 
 // Initialiser Hugging Face (optionnel)
@@ -157,13 +167,10 @@ function generateCardsSimple(text, count = 5) {
  */
 export async function generateCardsFromText(text, count = 5) {
   // Utiliser la génération simple si OpenAI n'est pas configuré
-  if (!openai && AI_PROVIDER !== 'openai') {
-    console.log('📝 Using simple rule-based generation (free)')
+  if (!openai || !useOpenAI) {
+    console.log('📝 Using simple rule-based generation (free, no API key)')
+    console.log('💡 To use OpenAI (with free $5 credits): https://platform.openai.com/api-keys')
     return generateCardsSimple(text, count)
-  }
-
-  if (!openai) {
-    throw new Error('OpenAI API key not configured. Set AI_PROVIDER=simple for free generation.')
   }
 
   if (!text || !text.trim()) {
@@ -331,13 +338,10 @@ function generateCardsFromTopicSimple(topic, count = 5) {
  */
 export async function generateCardsFromTopic(topic, count = 5) {
   // Utiliser la génération simple si OpenAI n'est pas configuré
-  if (!openai && AI_PROVIDER !== 'openai') {
-    console.log('📝 Using simple rule-based generation (free)')
+  if (!openai || !useOpenAI) {
+    console.log('📝 Using simple rule-based generation (free, no API key)')
+    console.log('💡 To use OpenAI (with free $5 credits): https://platform.openai.com/api-keys')
     return generateCardsFromTopicSimple(topic, count)
-  }
-
-  if (!openai) {
-    throw new Error('OpenAI API key not configured. Set AI_PROVIDER=simple for free generation.')
   }
 
   const prompt = `Crée ${count} cartes flashcard éducatives sur le sujet : "${topic}"
