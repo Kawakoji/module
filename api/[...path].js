@@ -22,56 +22,46 @@ dotenv.config()
 
 const app = express()
 
-// Configuration CORS pour autoriser toutes les URLs Vercel (production et preview)
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Autoriser les requêtes sans origin (Postman, curl, etc.)
-    if (!origin) return callback(null, true)
-    
-    // Autoriser toutes les URLs Vercel
-    if (
-      origin.includes('vercel.app') ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1')
-    ) {
-      callback(null, true)
-    } else {
-      callback(null, true) // Autoriser toutes les origines pour le moment
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}
-
-// Gérer les requêtes OPTIONS (preflight) AVANT tout autre middleware
-// Les requêtes OPTIONS ne doivent pas passer par le rate limiter
+// Gérer les requêtes OPTIONS (preflight) EN PREMIER, avant TOUT autre middleware
 app.options('*', (req, res) => {
   const origin = req.headers.origin
-  if (!origin || origin.includes('vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    res.header('Access-Control-Allow-Origin', origin || '*')
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-    res.header('Access-Control-Allow-Credentials', 'true')
-    res.status(200).end()
-  } else {
-    res.status(403).end()
-  }
+  // Autoriser toutes les origines Vercel
+  res.header('Access-Control-Allow-Origin', origin || '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Max-Age', '86400') // Cache preflight pour 24h
+  res.status(200).end()
 })
 
-// Middleware
+// Configuration CORS simplifiée - autoriser toutes les origines pour le moment
+const corsOptions = {
+  origin: true, // Autoriser toutes les origines
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+}
+
+// Middleware CORS - appliqué à toutes les routes
 app.use(cors(corsOptions))
+
+// Middleware de compression
 app.use(compression())
+
+// Body parsers
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Rate limiting (exclure OPTIONS qui sont déjà gérées)
-app.use((req, res, next) => {
+// Rate limiting - exclure OPTIONS
+const rateLimitMiddleware = (req, res, next) => {
   if (req.method === 'OPTIONS') {
     return next()
   }
   next()
-})
+}
+
+app.use(rateLimitMiddleware)
 app.use('/ai', rateLimiter(20, 15 * 60 * 1000))
 app.use('/', rateLimiter(100, 15 * 60 * 1000))
 
