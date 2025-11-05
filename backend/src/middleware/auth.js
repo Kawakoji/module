@@ -6,17 +6,20 @@ dotenv.config()
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseAnonKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
 // Créer un client Supabase pour vérifier les tokens JWT
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+// Si les variables manquent, on créera le client plus tard dans authenticate
+let supabase = null
+
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+} else {
+  console.warn('⚠️  Missing Supabase environment variables. Authentication will fail.')
+}
 
 /**
  * Middleware d'authentification
@@ -24,6 +27,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  */
 export const authenticate = async (req, res, next) => {
   try {
+    // Vérifier que Supabase est configuré
+    if (!supabase) {
+      console.error('Supabase not configured. Missing SUPABASE_URL or SUPABASE_ANON_KEY')
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'Authentication service not configured. Please check environment variables.'
+      })
+    }
+
     // Récupérer le token depuis le header Authorization
     const authHeader = req.headers.authorization
 
@@ -40,7 +52,8 @@ export const authenticate = async (req, res, next) => {
     } = await supabase.auth.getUser(token)
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' })
+      console.error('Auth error:', error)
+      return res.status(401).json({ error: 'Invalid token', details: error?.message })
     }
 
     // Ajouter l'utilisateur à la requête
@@ -48,7 +61,10 @@ export const authenticate = async (req, res, next) => {
     next()
   } catch (error) {
     console.error('Auth middleware error:', error)
-    return res.status(401).json({ error: 'Authentication failed' })
+    return res.status(500).json({ 
+      error: 'Authentication failed',
+      message: error.message 
+    })
   }
 }
 

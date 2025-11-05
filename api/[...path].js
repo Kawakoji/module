@@ -103,17 +103,33 @@ app.use(errorHandler)
 const handler = serverless(app)
 
 export default async function (req, res) {
+  // S'assurer que toutes les réponses sont en JSON
+  const originalJson = res.json
+  res.json = function(data) {
+    res.setHeader('Content-Type', 'application/json')
+    return originalJson.call(this, data)
+  }
+
   try {
     console.log(`[API] ${req.method} ${req.url}`)
-    return await handler(req, res)
+    const result = await handler(req, res)
+    return result
   } catch (error) {
     console.error('[API] Serverless function error:', error)
+    console.error('[API] Error name:', error.name)
+    console.error('[API] Error message:', error.message)
     console.error('[API] Error stack:', error.stack)
+    
+    // S'assurer que la réponse est en JSON
     if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json')
       res.status(500).json({
         error: 'Internal server error',
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        message: error.message || 'An unexpected error occurred',
+        ...(process.env.NODE_ENV !== 'production' && {
+          name: error.name,
+          stack: error.stack
+        })
       })
     }
   }
