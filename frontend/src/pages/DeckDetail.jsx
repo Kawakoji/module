@@ -94,7 +94,14 @@ export default function DeckDetail() {
         await loadCards()
       } catch (error) {
         console.error('Error saving card:', error)
-        alert('Erreur lors de la sauvegarde : ' + error.message)
+        // Afficher l'erreur dans le champ correspondant si disponible
+        if (error.field) {
+          setErrors({
+            [error.field]: error.message || 'Erreur de validation'
+          })
+        } else {
+          alert('Erreur lors de la sauvegarde : ' + error.message)
+        }
       }
     }
   }

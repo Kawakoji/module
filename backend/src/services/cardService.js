@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js'
-import { NotFoundError } from '../utils/errors.js'
+import { NotFoundError, ValidationError } from '../utils/errors.js'
 
 /**
  * Service pour gérer les cartes
@@ -89,13 +89,25 @@ export const cardService = {
    * @returns {Promise<Object>} La carte créée
    */
   async createCard(cardData) {
-    const { validators } = await import('../utils/validation.js')
-    const { deck_id, question, answer } = cardData
+    try {
+      const { validators } = await import('../utils/validation.js')
+      const { deck_id, question, answer } = cardData
 
-    // Validation
-    validators.validateUUID(deck_id, 'Deck ID')
-    const validatedQuestion = validators.validateCardQuestion(question)
-    const validatedAnswer = validators.validateCardAnswer(answer)
+      console.log('[CardService] Creating card with data:', {
+        deck_id,
+        question: question?.substring(0, 50),
+        answer: answer?.substring(0, 50),
+        hasQuestion: !!question,
+        hasAnswer: !!answer,
+      })
+
+      // Validation
+      if (!deck_id) {
+        throw new ValidationError('Deck ID est requis', 'deck_id')
+      }
+      validators.validateUUID(deck_id, 'Deck ID')
+      const validatedQuestion = validators.validateCardQuestion(question)
+      const validatedAnswer = validators.validateCardAnswer(answer)
 
     const card = {
       deck_id,
@@ -108,17 +120,39 @@ export const cardService = {
       next_review: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
-      .from('cards')
-      .insert([card])
-      .select()
-      .single()
+      const { data, error } = await supabase
+        .from('cards')
+        .insert([card])
+        .select()
+        .single()
 
-    if (error) {
-      throw new Error(`Error creating card: ${error.message}`)
+      if (error) {
+        console.error('[CardService] Supabase error creating card:', error)
+        // Préserver les erreurs de validation
+        if (error.code && error.code.startsWith('PGRST')) {
+          throw error
+        }
+        throw new Error(`Error creating card: ${error.message}`)
+      }
+
+      if (!data) {
+        throw new Error('No data returned from database')
+      }
+
+      return data
+    } catch (error) {
+      // Si c'est déjà une ValidationError, la relancer telle quelle
+      if (error.name === 'ValidationError') {
+        throw error
+      }
+      // Si c'est une erreur Supabase, la relancer telle quelle pour que errorHandler la gère
+      if (error.code && error.code.startsWith('PGRST')) {
+        throw error
+      }
+      // Sinon, encapsuler dans une nouvelle erreur
+      console.error('[CardService] Error in createCard:', error)
+      throw error
     }
-
-    return data
   },
 
   /**

@@ -82,7 +82,14 @@ async function request(endpoint, options = {}) {
         window.location.href = '/login'
         return
       }
-      throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`)
+      
+      // Pour les erreurs de validation, inclure le champ
+      const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`
+      const error = new Error(errorMessage)
+      if (data.field) {
+        error.field = data.field
+      }
+      throw error
     }
 
     return data
