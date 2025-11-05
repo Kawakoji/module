@@ -6,11 +6,18 @@ import { supabase } from '../contexts/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
+// Normaliser l'URL pour éviter les doubles slashes
+const normalizeUrl = (baseUrl, endpoint) => {
+  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  return `${base}${path}`
+}
+
 /**
  * Fonction utilitaire pour faire des requêtes HTTP
  */
 async function request(endpoint, options = {}) {
-  const url = `${API_URL}${endpoint}`
+  const url = normalizeUrl(API_URL, endpoint)
   
   // Récupérer le token depuis Supabase
   let token = null

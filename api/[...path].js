@@ -22,8 +22,30 @@ dotenv.config()
 
 const app = express()
 
+// Configuration CORS pour autoriser toutes les URLs Vercel (production et preview)
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origin (Postman, curl, etc.)
+    if (!origin) return callback(null, true)
+    
+    // Autoriser toutes les URLs Vercel
+    if (
+      origin.includes('vercel.app') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
+      callback(null, true)
+    } else {
+      callback(null, true) // Autoriser toutes les origines pour le moment
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}
+
 // Middleware
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
