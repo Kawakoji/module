@@ -10,11 +10,22 @@ import {
 } from '../utils/errors.js'
 
 export const errorHandler = (err, req, res, next) => {
-  console.error('Error:', {
+  // S'assurer que le Content-Type est JSON
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  
+  console.error('[ErrorHandler] Error:', {
     name: err.name,
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    code: err.code,
+    details: err.details || err.hint,
   })
+
+  // Ne pas envoyer de réponse si elle a déjà été envoyée
+  if (res.headersSent) {
+    console.error('[ErrorHandler] Headers already sent, cannot send error response')
+    return next(err)
+  }
 
   // Erreurs personnalisées
   if (err instanceof ValidationError) {
@@ -77,10 +88,12 @@ export const errorHandler = (err, req, res, next) => {
       ? 'Une erreur est survenue'
       : err.message || 'Internal Server Error'
 
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     error: message,
-    ...(process.env.NODE_ENV === 'development' && {
+    ...(process.env.NODE_ENV !== 'production' && {
+      name: err.name,
       stack: err.stack,
+      code: err.code,
     }),
   })
 }

@@ -46,23 +46,39 @@ let supabase = null
 if (!useNeon && useSupabaseAuth) {
   // Utiliser Supabase JS normalement
   supabase = supabaseAuth
+  console.log('✅ Using Supabase JS for database operations')
 } else if (useNeon) {
-  // Si on utilise Neon, on crée un client Supabase "dummy" pour la compatibilité
-  // Les services devront être adaptés pour utiliser pg directement
-  // Pour l'instant, on utilise Supabase JS avec la connection string de Neon
-  // Note: Cela peut ne pas fonctionner parfaitement, il faudra adapter les services
-  console.log('⚠️  Using Neon database. Some Supabase JS features may not work.')
-  console.log('💡 Consider using pg directly for better compatibility.')
-  
-  // On essaie quand même de créer un client avec la connection string
-  // mais cela ne fonctionnera probablement pas pour les opérations de base
-  // Pour l'instant, on garde supabaseAuth pour l'auth
-  supabase = supabaseAuth || {
-    // Wrapper minimal pour compatibilité
+  // Si on utilise Neon, on utilise Supabase JS avec SUPABASE_URL
+  // car Supabase JS peut fonctionner avec une connection string PostgreSQL standard
+  // à condition que SUPABASE_URL pointe vers la base de données
+  if (useSupabaseAuth && process.env.SUPABASE_URL) {
+    // Utiliser Supabase JS avec SUPABASE_URL (qui devrait pointer vers Supabase, pas Neon)
+    // Si SUPABASE_URL pointe vers Neon, cela pourrait ne pas fonctionner
+    console.log('⚠️  DATABASE_URL detected. Using Supabase JS with SUPABASE_URL.')
+    console.log('💡 If SUPABASE_URL points to Neon, this may not work. Use Supabase for database or migrate services to use pg.')
+    supabase = supabaseAuth
+  } else {
+    // Pas de SUPABASE_URL configuré, on ne peut pas utiliser Supabase JS
+    console.error('❌ DATABASE_URL is set but SUPABASE_URL is not configured.')
+    console.error('💡 You need both SUPABASE_URL and SUPABASE_SERVICE_KEY to use Supabase JS.')
+    console.error('💡 Or migrate services to use pg directly with DATABASE_URL.')
+    supabase = {
+      // Wrapper minimal pour compatibilité qui lance une erreur explicite
+      from: (table) => {
+        throw new Error(
+          `Database configuration error: DATABASE_URL is set but SUPABASE_URL is missing. ` +
+          `Please configure SUPABASE_URL and SUPABASE_SERVICE_KEY, or migrate services to use pg directly.`
+        )
+      }
+    }
+  }
+} else if (!useSupabaseAuth) {
+  console.error('❌ Neither DATABASE_URL nor SUPABASE_URL is configured.')
+  console.error('💡 Please configure SUPABASE_URL and SUPABASE_SERVICE_KEY, or DATABASE_URL.')
+  supabase = {
     from: (table) => {
       throw new Error(
-        `Supabase JS cannot be used with Neon connection strings directly. ` +
-        `Please use the database adapter or modify services to use pg.`
+        `Database not configured: Please set SUPABASE_URL and SUPABASE_SERVICE_KEY, or DATABASE_URL.`
       )
     }
   }

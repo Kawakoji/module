@@ -43,6 +43,38 @@ const corsOptions = {
   exposedHeaders: ['Content-Length', 'Content-Type'],
 }
 
+// Middleware pour s'assurer que toutes les réponses sont en JSON
+app.use((req, res, next) => {
+  // Wrapper pour garantir JSON
+  const originalJson = res.json
+  const originalSend = res.send
+  const originalStatus = res.status
+  
+  res.json = function(data) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    return originalJson.call(this, data)
+  }
+  
+  res.send = function(data) {
+    // Si c'est déjà une string qui ressemble à du JSON, garder le Content-Type JSON
+    if (typeof data === 'string') {
+      try {
+        JSON.parse(data)
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      } catch {
+        // Si ce n'est pas du JSON valide, on le convertit en JSON
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        return originalJson.call(this, { message: data })
+      }
+    } else {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    }
+    return originalSend.call(this, data)
+  }
+  
+  next()
+})
+
 // Middleware CORS - appliqué à toutes les routes
 app.use(cors(corsOptions))
 
@@ -105,14 +137,35 @@ const handler = serverless(app)
 export default async function (req, res) {
   // S'assurer que toutes les réponses sont en JSON
   const originalJson = res.json
+  const originalSend = res.send
+  
   res.json = function(data) {
-    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
     return originalJson.call(this, data)
+  }
+  
+  res.send = function(data) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    if (typeof data === 'string' && !data.startsWith('{') && !data.startsWith('[')) {
+      return originalJson.call(this, { message: data })
+    }
+    return originalSend.call(this, data)
   }
 
   try {
-    console.log(`[API] ${req.method} ${req.url}`)
+    console.log(`[API] ${req.method} ${req.url}`, {
+      headers: req.headers,
+      body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
+    })
+    
     const result = await handler(req, res)
+    
+    // Si la réponse n'a pas été envoyée et qu'on a un résultat, l'envoyer
+    if (!res.headersSent && result) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      return res.json(result)
+    }
+    
     return result
   } catch (error) {
     console.error('[API] Serverless function error:', error)
@@ -122,8 +175,8 @@ export default async function (req, res) {
     
     // S'assurer que la réponse est en JSON
     if (!res.headersSent) {
-      res.setHeader('Content-Type', 'application/json')
-      res.status(500).json({
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      return res.status(500).json({
         error: 'Internal server error',
         message: error.message || 'An unexpected error occurred',
         ...(process.env.NODE_ENV !== 'production' && {
@@ -131,6 +184,9 @@ export default async function (req, res) {
           stack: error.stack
         })
       })
+    } else {
+      // Si les headers ont déjà été envoyés, on ne peut rien faire
+      console.error('[API] Headers already sent, cannot send error response')
     }
   }
 }
