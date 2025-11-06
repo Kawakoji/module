@@ -537,12 +537,23 @@ export const api = {
 
   /**
    * Mettre à jour le profil utilisateur
-   * @param {Object} updates - { username, avatar_url }
+   * @param {Object} updates - { username, avatar_url, memory_type }
    */
   async updateProfile(updates) {
     return request('/profile', {
       method: 'PUT',
       body: updates,
+    })
+  },
+
+  /**
+   * Sauvegarder les résultats du test de mémoire
+   * @param {Array} answers - Réponses du test [{ questionId, type }]
+   */
+  async saveMemoryTestResults(answers) {
+    return request('/profile/memory-test', {
+      method: 'POST',
+      body: { answers },
     })
   },
 }

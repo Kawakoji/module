@@ -220,3 +220,4 @@ Le prompt utilisé est optimisé pour générer des flashcards de qualité :
 
 
 
+

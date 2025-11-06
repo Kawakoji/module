@@ -14,16 +14,27 @@ export default function Review() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [reviewedCount, setReviewedCount] = useState(0)
   const [reviewing, setReviewing] = useState(false)
+  const [memoryType, setMemoryType] = useState(null)
   const [sessionStats, setSessionStats] = useState({
     hard: 0,
     medium: 0,
     easy: 0,
   })
 
-  // Charger les cartes à réviser
+  // Charger les cartes à réviser et le profil
   useEffect(() => {
     loadCardsToReview()
+    loadProfile()
   }, [])
+
+  const loadProfile = async () => {
+    try {
+      const profile = await api.getProfile()
+      setMemoryType(profile.memory_type)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    }
+  }
 
   const loadCardsToReview = async () => {
     try {
@@ -45,6 +56,74 @@ export default function Review() {
   const handleFlip = () => {
     setIsFlipped(!isFlipped)
   }
+
+  // Fonction pour adapter l'affichage selon le type de mémoire
+  const getCardDisplayStyle = () => {
+    if (!memoryType) {
+      // Par défaut, style standard
+      return {
+        cardClassName: '',
+        textClassName: 'text-2xl font-medium text-gray-900 dark:text-white mb-8',
+        showIcons: false,
+        showAudio: false,
+        animationType: 'fade',
+      }
+    }
+
+    switch (memoryType) {
+      case 'visual':
+        return {
+          cardClassName: 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800',
+          textClassName: 'text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-8',
+          showIcons: true,
+          showAudio: false,
+          animationType: 'scale',
+        }
+      case 'auditory':
+        return {
+          cardClassName: 'bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800',
+          textClassName: 'text-2xl font-medium text-gray-900 dark:text-white mb-8',
+          showIcons: false,
+          showAudio: true,
+          animationType: 'fade',
+        }
+      case 'reading':
+        return {
+          cardClassName: 'bg-gray-50 dark:bg-gray-800/50 border-2 border-gray-300 dark:border-gray-600',
+          textClassName: 'text-xl leading-relaxed text-gray-900 dark:text-white mb-8 space-y-4 max-w-3xl mx-auto text-left px-4',
+          showIcons: false,
+          showAudio: false,
+          animationType: 'fade',
+        }
+      case 'kinesthetic':
+        return {
+          cardClassName: 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-2 border-orange-200 dark:border-orange-800',
+          textClassName: 'text-2xl font-medium text-gray-900 dark:text-white mb-8',
+          showIcons: false,
+          showAudio: false,
+          animationType: 'bounce',
+        }
+      default:
+        return {
+          cardClassName: '',
+          textClassName: 'text-2xl font-medium text-gray-900 dark:text-white mb-8',
+          showIcons: false,
+          showAudio: false,
+          animationType: 'fade',
+        }
+    }
+  }
+
+  const handleTextToSpeech = (text) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'fr-FR'
+      utterance.rate = 0.9
+      speechSynthesis.speak(utterance)
+    }
+  }
+
+  const displayStyle = getCardDisplayStyle()
 
   const handleReview = async (quality) => {
     if (!currentCard || reviewing) return
@@ -199,7 +278,7 @@ export default function Review() {
           key={currentIndex}
         >
           <Card
-            className="min-h-[400px] cursor-pointer hover:shadow-lg transition-shadow"
+            className={`min-h-[400px] cursor-pointer hover:shadow-lg transition-shadow ${displayStyle.cardClassName}`}
             onClick={handleFlip}
             hover={false}
           >
@@ -215,18 +294,69 @@ export default function Review() {
                     Deck: {currentDeck.name}
                   </div>
                 )}
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  {isFlipped ? 'Réponse' : 'Question'}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  {displayStyle.showIcons && (
+                    <span className="text-2xl">
+                      {isFlipped ? '💡' : '❓'}
+                    </span>
+                  )}
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {isFlipped ? 'Réponse' : 'Question'}
+                  </span>
                 </div>
-                <motion.div
-                  key={isFlipped ? 'answer' : 'question'}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-2xl font-medium text-gray-900 dark:text-white mb-8"
-                >
-                  {isFlipped ? currentCard.answer : currentCard.question}
-                </motion.div>
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <motion.div
+                    key={isFlipped ? 'answer' : 'question'}
+                    initial={
+                      displayStyle.animationType === 'bounce'
+                        ? { opacity: 0, scale: 0.8, y: 20 }
+                        : displayStyle.animationType === 'scale'
+                        ? { opacity: 0, scale: 0.9 }
+                        : { opacity: 0, y: 10 }
+                    }
+                    animate={
+                      displayStyle.animationType === 'bounce'
+                        ? { opacity: 1, scale: 1, y: 0 }
+                        : displayStyle.animationType === 'scale'
+                        ? { opacity: 1, scale: 1 }
+                        : { opacity: 1, y: 0 }
+                    }
+                    transition={
+                      displayStyle.animationType === 'bounce'
+                        ? { type: 'spring', stiffness: 300, damping: 20 }
+                        : { duration: 0.3 }
+                    }
+                    className={displayStyle.textClassName}
+                  >
+                    {isFlipped ? currentCard.answer : currentCard.question}
+                  </motion.div>
+                  {displayStyle.showAudio && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleTextToSpeech(
+                          isFlipped ? currentCard.answer : currentCard.question
+                        )
+                      }}
+                      className="p-2 rounded-full bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                      title="Lire à voix haute"
+                    >
+                      <svg
+                        className="w-6 h-6 text-primary-600 dark:text-primary-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 <div className="text-xs text-gray-400 dark:text-gray-500">
                   {isFlipped
                     ? 'Cliquez pour voir la question'

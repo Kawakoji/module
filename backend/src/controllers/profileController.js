@@ -24,17 +24,36 @@ export const profileController = {
    */
   async updateProfile(req, res, next) {
     try {
-      const { username, avatar_url } = req.body
+      const { username, avatar_url, memory_type } = req.body
       const profile = await profileService.updateProfile(req.user.id, {
         username,
         avatar_url,
+        memory_type,
       })
       res.json(profile)
     } catch (error) {
       next(error)
     }
   },
+
+  /**
+   * POST /api/profile/memory-test
+   * Sauvegarder les résultats du test de mémoire
+   */
+  async saveMemoryTestResults(req, res, next) {
+    try {
+      const { answers } = req.body
+      if (!answers || !Array.isArray(answers)) {
+        return res.status(400).json({ error: 'Les réponses du test sont requises' })
+      }
+      const profile = await profileService.saveMemoryTestResults(req.user.id, answers)
+      res.json(profile)
+    } catch (error) {
+      next(error)
+    }
+  },
 }
+
 
 
 

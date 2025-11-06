@@ -10,8 +10,10 @@ router.use(authenticate)
 // Routes pour le profil
 router.get('/', profileController.getProfile)
 router.put('/', profileController.updateProfile)
+router.post('/memory-test', profileController.saveMemoryTestResults)
 
 export default router
+
 
 
 

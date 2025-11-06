@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import Input from '../components/Input'
+import MemoryTestModal from '../components/MemoryTestModal'
 import { api } from '../services/api'
 
 export default function Profile() {
@@ -12,8 +13,10 @@ export default function Profile() {
   const [profile, setProfile] = useState({
     username: '',
     avatar_url: '',
+    memory_type: '',
   })
   const [errors, setErrors] = useState({})
+  const [showMemoryTest, setShowMemoryTest] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -26,6 +29,7 @@ export default function Profile() {
       setProfile({
         username: data.username || '',
         avatar_url: data.avatar_url || '',
+        memory_type: data.memory_type || '',
       })
     } catch (error) {
       console.error('Error loading profile:', error)
@@ -44,10 +48,12 @@ export default function Profile() {
       const updated = await api.updateProfile({
         username: profile.username.trim() || null,
         avatar_url: profile.avatar_url.trim() || null,
+        memory_type: profile.memory_type || null,
       })
       setProfile({
         username: updated.username || '',
         avatar_url: updated.avatar_url || '',
+        memory_type: updated.memory_type || '',
       })
       alert('Profil mis à jour avec succès !')
     } catch (error) {
@@ -56,6 +62,24 @@ export default function Profile() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleMemoryTestComplete = async (updatedProfile) => {
+    // Recharger le profil pour mettre à jour le type de mémoire
+    await loadProfile()
+    alert(
+      `Test terminé ! Votre type de mémoire est : ${getMemoryTypeLabel(updatedProfile.memory_type)}`
+    )
+  }
+
+  const getMemoryTypeLabel = (type) => {
+    const labels = {
+      visual: '👁️ Visuelle',
+      auditory: '👂 Auditive',
+      reading: '📖 Lecture/Écriture',
+      kinesthetic: '🤲 Kinesthésique',
+    }
+    return labels[type] || type
   }
 
   if (loading) {
@@ -120,6 +144,50 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* Type de mémoire */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Type de mémoire 🧠
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Votre type de mémoire préféré
+                </label>
+                <select
+                  value={profile.memory_type || ''}
+                  onChange={(e) =>
+                    setProfile({ ...profile, memory_type: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Non défini</option>
+                  <option value="visual">👁️ Visuelle (images, diagrammes, couleurs)</option>
+                  <option value="auditory">👂 Auditive (sons, voix, musique)</option>
+                  <option value="reading">📖 Lecture/Écriture (textes, listes, notes)</option>
+                  <option value="kinesthetic">🤲 Kinesthésique (mouvements, interactions)</option>
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Ce choix adapte l'affichage de vos cartes pour optimiser votre apprentissage
+                </p>
+              </div>
+
+              {/* Bouton pour faire le test */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Vous ne savez pas quel est votre type ?
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowMemoryTest(true)}
+                >
+                  🧪 Faire le test (10 questions)
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Erreur générale */}
           {errors.general && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
@@ -166,9 +234,17 @@ export default function Profile() {
           </div>
         </div>
       </Card>
+
+      {/* Modal de test de mémoire */}
+      <MemoryTestModal
+        isOpen={showMemoryTest}
+        onClose={() => setShowMemoryTest(false)}
+        onComplete={handleMemoryTestComplete}
+      />
     </div>
   )
 }
+
 
 
 
