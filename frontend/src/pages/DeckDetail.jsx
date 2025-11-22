@@ -67,7 +67,20 @@ export default function DeckDetail() {
   const loadCards = async () => {
     try {
       setLoading(true)
-      const cards = await getDeckCards(deckId)
+      const result = await getDeckCards(deckId)
+      // getDeckCards peut retourner un objet avec cards ou directement un tableau
+      const cards = Array.isArray(result) ? result : (result?.cards || [])
+      
+      console.log('[DeckDetail] Loaded cards:', {
+        count: cards.length,
+        firstCard: cards[0] ? {
+          id: cards[0].id,
+          deck_id: cards[0].deck_id,
+          hasId: !!cards[0].id,
+          keys: Object.keys(cards[0])
+        } : null
+      })
+      
       setDeckCards(cards)
     } catch (error) {
       console.error('Error loading cards:', error)
@@ -145,13 +158,35 @@ export default function DeckDetail() {
 
   const handleEdit = (card) => {
     console.log('[DeckDetail] handleEdit called with card:', card)
-    if (!card || !card.id) {
-      console.error('[DeckDetail] Invalid card data:', card)
-      alert('Erreur: Données de carte invalides')
+    console.log('[DeckDetail] Card structure:', {
+      id: card?.id,
+      deck_id: card?.deck_id,
+      question: card?.question?.substring(0, 50),
+      hasId: !!card?.id,
+      allKeys: Object.keys(card || {})
+    })
+    
+    if (!card) {
+      console.error('[DeckDetail] No card provided')
+      alert('Erreur: Aucune carte fournie')
       return
     }
+    
+    if (!card.id) {
+      console.error('[DeckDetail] Card missing ID:', card)
+      alert('Erreur: La carte n\'a pas d\'ID. Structure: ' + JSON.stringify(Object.keys(card)))
+      return
+    }
+    
+    // Vérifier que l'ID n'est pas celui du deck
+    if (card.id === deckId) {
+      console.error('[DeckDetail] Card ID matches deck ID! This is wrong.', { cardId: card.id, deckId })
+      alert('Erreur: L\'ID de la carte correspond à l\'ID du deck. Cela ne devrait pas arriver.')
+      return
+    }
+    
     setEditingCard(card)
-    setFormData({ question: card.question, answer: card.answer })
+    setFormData({ question: card.question || '', answer: card.answer || '' })
     setIsModalOpen(true)
   }
 

@@ -195,7 +195,9 @@ export function AppProvider({ children }) {
     
     // Si on n'a pas de cartes en cache, les charger
     if (cachedCards.length === 0) {
-      return await loadDeckCards(deckId)
+      const result = await loadDeckCards(deckId)
+      // S'assurer de retourner un tableau
+      return Array.isArray(result) ? result : (result?.cards || [])
     }
     
     return cachedCards

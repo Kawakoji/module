@@ -247,8 +247,25 @@ export const api = {
     if (!cardId) {
       throw new Error('Card ID is required')
     }
-    console.log('[API] updateCard called with:', { cardId, updates })
-    return request(`/cards/${cardId}`, {
+    
+    // Vérifier que l'ID ressemble à un UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(cardId)) {
+      console.error('[API] Invalid card ID format:', cardId)
+      throw new Error(`Invalid card ID format: ${cardId}`)
+    }
+    
+    console.log('[API] updateCard called with:', { 
+      cardId, 
+      cardIdLength: cardId.length,
+      updates,
+      endpoint: `/cards/${cardId}`
+    })
+    
+    const endpoint = `/cards/${cardId}`
+    console.log('[API] Calling endpoint:', endpoint)
+    
+    return request(endpoint, {
       method: 'PUT',
       body: updates,
     })
