@@ -102,7 +102,9 @@ apiRouter.use((req, res, next) => {
   console.log(`[API Router] ${req.method} ${req.path}`, {
     url: req.url,
     baseUrl: req.baseUrl,
-    originalUrl: req.originalUrl
+    originalUrl: req.originalUrl,
+    params: req.params,
+    query: req.query
   })
   next()
 })
@@ -187,6 +189,7 @@ export default async function handler(req, res) {
       path: req.path,
       query: req.query,
       queryPath: req.query?.path,
+      method: req.method,
       headers: {
         'content-type': req.headers['content-type'],
         'authorization': req.headers['authorization'] ? 'present' : 'missing'

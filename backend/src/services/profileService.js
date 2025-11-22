@@ -33,7 +33,8 @@ export const profileService = {
         .insert([
           {
             id: userId,
-            username: null,
+            email: null,
+            full_name: null,
             avatar_url: null,
           },
         ])
@@ -61,11 +62,15 @@ export const profileService = {
       throw new Error('User ID is required')
     }
 
-    const { username, avatar_url, memory_type } = updates
+    const { username, full_name, avatar_url, memory_type } = updates
 
     const updateData = {}
+    // username peut être mappé vers full_name si la colonne username n'existe pas
     if (username !== undefined) {
-      updateData.username = username?.trim() || null
+      updateData.full_name = username?.trim() || null
+    }
+    if (full_name !== undefined) {
+      updateData.full_name = full_name?.trim() || null
     }
     if (avatar_url !== undefined) {
       updateData.avatar_url = avatar_url?.trim() || null
