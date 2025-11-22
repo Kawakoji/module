@@ -107,12 +107,14 @@ apiRouter.use((req, res, next) => {
   next()
 })
 
-// Routes de santé
+// Routes de santé - accessible à /health (sans /api car monté sur /)
 apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Moduleia API is running',
     timestamp: new Date().toISOString(),
+    path: req.path,
+    url: req.url
   })
 })
 
@@ -144,9 +146,9 @@ app.use(errorHandler)
 
 export default async function handler(req, res) {
   try {
-    // Dans Vercel avec api/[...path].js, le chemin arrive SANS le préfixe /api
-    // Exemple: requête à /api/decks/123 → req.url = '/decks/123' (sans /api)
-    // OU req.query.path = ['decks', '123']
+    // Dans Vercel avec api/[...path].js, le chemin peut être dans req.query.path
+    // Exemple: requête à /api/decks/123 → req.query.path = ['decks', '123']
+    // OU req.url peut être '/decks/123' (sans /api)
     
     let path = req.url || req.originalUrl || '/'
     
@@ -155,7 +157,16 @@ export default async function handler(req, res) {
       const pathArray = Array.isArray(req.query.path) 
         ? req.query.path 
         : (typeof req.query.path === 'string' ? req.query.path.split('/').filter(Boolean) : [])
-      path = `/${pathArray.join('/')}`
+      if (pathArray.length > 0) {
+        path = `/${pathArray.join('/')}`
+      }
+    }
+    
+    // Si le chemin commence par /api, le retirer (Vercel l'a déjà retiré normalement)
+    if (path.startsWith('/api/')) {
+      path = path.substring(4) // Retirer '/api'
+    } else if (path === '/api') {
+      path = '/'
     }
     
     // S'assurer que le chemin commence par /
@@ -164,7 +175,7 @@ export default async function handler(req, res) {
     }
     
     // Mettre à jour req.url pour Express
-    // Dans Vercel, req.url peut déjà être correct (sans /api)
+    // Dans Vercel, req.url doit être sans /api car les routes sont montées sur /
     req.url = path
     req.originalUrl = path
     
@@ -183,7 +194,15 @@ export default async function handler(req, res) {
       body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
     })
     
-    // Utiliser Express directement (sans wrapper @vercel/node pour l'instant)
+    // Vérifier que le chemin est correct avant de passer à Express
+    if (!path || path === '/api' || path === '/api/') {
+      console.warn('[API Handler] Path is empty or just /api, setting to /')
+      path = '/'
+      req.url = '/'
+      req.originalUrl = '/'
+    }
+    
+    // Utiliser Express directement
     app(req, res)
   } catch (error) {
     console.error('[API] Serverless function error:', error)
