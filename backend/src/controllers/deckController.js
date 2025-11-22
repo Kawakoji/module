@@ -74,15 +74,44 @@ export const deckController = {
       const { id } = req.params
       const { name, description } = req.body
 
+      console.log('[DeckController] updateDeck called with:', {
+        id,
+        userId: req.user?.id,
+        hasName: !!name,
+        hasDescription: !!description
+      })
+
+      if (!req.user || !req.user.id) {
+        console.error('[DeckController] No user in request')
+        throw new ForbiddenError('User not authenticated')
+      }
+
       // Vérifier que le deck appartient à l'utilisateur
       const deck = await deckService.getDeckById(id)
+      
+      console.log('[DeckController] Deck found:', {
+        deckId: deck?.id,
+        deckUserId: deck?.user_id,
+        requestUserId: req.user.id,
+        match: deck?.user_id === req.user.id
+      })
+
+      if (!deck) {
+        throw new NotFoundError('Deck')
+      }
+
       if (deck.user_id !== req.user.id) {
+        console.error('[DeckController] User does not own deck:', {
+          deckUserId: deck.user_id,
+          requestUserId: req.user.id
+        })
         throw new ForbiddenError()
       }
 
       const updatedDeck = await deckService.updateDeck(id, { name, description })
       res.json(updatedDeck)
     } catch (error) {
+      console.error('[DeckController] Error in updateDeck:', error)
       next(error)
     }
   },
@@ -95,15 +124,42 @@ export const deckController = {
     try {
       const { id } = req.params
 
+      console.log('[DeckController] deleteDeck called with:', {
+        id,
+        userId: req.user?.id
+      })
+
+      if (!req.user || !req.user.id) {
+        console.error('[DeckController] No user in request')
+        throw new ForbiddenError('User not authenticated')
+      }
+
       // Vérifier que le deck appartient à l'utilisateur
       const deck = await deckService.getDeckById(id)
+      
+      console.log('[DeckController] Deck found:', {
+        deckId: deck?.id,
+        deckUserId: deck?.user_id,
+        requestUserId: req.user.id,
+        match: deck?.user_id === req.user.id
+      })
+
+      if (!deck) {
+        throw new NotFoundError('Deck')
+      }
+
       if (deck.user_id !== req.user.id) {
+        console.error('[DeckController] User does not own deck:', {
+          deckUserId: deck.user_id,
+          requestUserId: req.user.id
+        })
         throw new ForbiddenError()
       }
 
       await deckService.deleteDeck(id)
       res.status(204).send()
     } catch (error) {
+      console.error('[DeckController] Error in deleteDeck:', error)
       next(error)
     }
   },

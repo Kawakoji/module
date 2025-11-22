@@ -52,12 +52,24 @@ export const authenticate = async (req, res, next) => {
     } = await supabase.auth.getUser(token)
 
     if (error || !user) {
-      console.error('Auth error:', error)
+      console.error('[Auth] Auth error:', {
+        error: error?.message,
+        errorCode: error?.status,
+        hasUser: !!user
+      })
       return res.status(401).json({ error: 'Invalid token', details: error?.message })
     }
 
     // Ajouter l'utilisateur à la requête
     req.user = user
+    
+    console.log('[Auth] User authenticated:', {
+      userId: user.id,
+      email: user.email,
+      method: req.method,
+      path: req.path
+    })
+    
     next()
   } catch (error) {
     console.error('Auth middleware error:', error)

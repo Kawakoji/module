@@ -172,22 +172,56 @@ export const cardController = {
     try {
       const { id } = req.params
 
+      console.log('[CardController] deleteCard called with:', {
+        id,
+        userId: req.user?.id
+      })
+
+      if (!req.user || !req.user.id) {
+        console.error('[CardController] No user in request')
+        throw new ForbiddenError('User not authenticated')
+      }
+
       // Vérifier que la carte appartient à l'utilisateur
       const card = await cardService.getCardById(id)
+      
+      if (!card) {
+        throw new NotFoundError('Carte')
+      }
+
       const { supabase } = await import('../config/supabase.js')
-      const { data: deck } = await supabase
+      const { data: deck, error: deckError } = await supabase
         .from('decks')
         .select('user_id')
         .eq('id', card.deck_id)
         .single()
 
-      if (!deck || deck.user_id !== req.user.id) {
+      console.log('[CardController] Deck found:', {
+        cardId: card.id,
+        deckId: card.deck_id,
+        deckUserId: deck?.user_id,
+        requestUserId: req.user.id,
+        match: deck?.user_id === req.user.id,
+        deckError: deckError?.message
+      })
+
+      if (deckError || !deck) {
+        console.error('[CardController] Error fetching deck:', deckError)
+        throw new NotFoundError('Deck')
+      }
+
+      if (deck.user_id !== req.user.id) {
+        console.error('[CardController] User does not own deck:', {
+          deckUserId: deck.user_id,
+          requestUserId: req.user.id
+        })
         throw new ForbiddenError()
       }
 
       await cardService.deleteCard(id)
       res.status(204).send()
     } catch (error) {
+      console.error('[CardController] Error in deleteCard:', error)
       next(error)
     }
   },
