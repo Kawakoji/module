@@ -167,11 +167,36 @@ export default async function (req, res) {
   }
 
   try {
+    // Dans Vercel avec [...path], le chemin est dans req.query.path
+    // Exemple: /api/decks/123 devient { path: ['decks', '123'] }
+    let path = req.url || req.originalUrl || '/'
+    
+    // Si le chemin ne commence pas par /api, le reconstruire depuis req.query.path
+    if (!path.startsWith('/api')) {
+      if (req.query && req.query.path) {
+        // req.query.path est un tableau ou une chaîne
+        const pathArray = Array.isArray(req.query.path) 
+          ? req.query.path 
+          : (typeof req.query.path === 'string' ? req.query.path.split('/') : [])
+        path = `/api/${pathArray.join('/')}`
+      } else {
+        // Si pas de query.path, essayer de reconstruire depuis req.url
+        path = path.startsWith('/') ? `/api${path}` : `/api/${path}`
+      }
+    }
+    
+    // Mettre à jour req.url et req.originalUrl pour Express
+    req.url = path
+    req.originalUrl = path
+    
     // Log détaillé pour debug
-    console.log(`[API Handler] ${req.method} ${req.url}`, {
+    console.log(`[API Handler] ${req.method} ${path}`, {
       originalUrl: req.originalUrl,
+      url: req.url,
       baseUrl: req.baseUrl,
       path: req.path,
+      query: req.query,
+      queryPath: req.query?.path,
       headers: {
         'content-type': req.headers['content-type'],
         'authorization': req.headers['authorization'] ? 'present' : 'missing'
