@@ -5,7 +5,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import compression from 'compression'
-import { createServer } from '@vercel/node'
+import vercelNode from '@vercel/node'
 import { errorHandler } from '../backend/src/middleware/errorHandler.js'
 import { rateLimiter } from '../backend/src/middleware/rateLimiter.js'
 import deckRoutes from '../backend/src/routes/deckRoutes.js'
@@ -147,6 +147,8 @@ app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
 // Créer le serveur Express wrapper pour Vercel
+// @vercel/node est un module CommonJS, utiliser l'import par défaut
+const { createServer } = vercelNode
 const server = createServer(app)
 
 export default async function handler(req, res) {
