@@ -158,8 +158,18 @@ export function AppProvider({ children }) {
       // Vérifier que l'ID n'est pas celui d'un deck (en vérifiant dans les decks)
       const isDeckId = decks.some(deck => deck.id === id)
       if (isDeckId) {
-        console.error('[AppContext] ERROR: The provided ID is a deck ID, not a card ID!', { id, decks: decks.map(d => d.id) })
-        throw new Error(`The provided ID (${id}) is a deck ID, not a card ID. Cannot update card with deck ID.`)
+        console.error('[AppContext] CRITICAL ERROR: The provided ID is a deck ID, not a card ID!', { 
+          id, 
+          deckIds: decks.map(d => d.id),
+          cardIds: cards.map(c => c.id).slice(0, 5)
+        })
+        throw new Error(`ERREUR CRITIQUE: L'ID fourni (${id}) est un ID de deck, pas un ID de carte. Vous ne pouvez pas modifier une carte avec un ID de deck. Veuillez utiliser le bouton de modification du deck pour modifier le deck.`)
+      }
+      
+      // Vérifier que l'ID correspond bien à une carte existante
+      const cardExists = cards.some(card => card.id === id)
+      if (!cardExists) {
+        console.warn('[AppContext] Card ID not found in local cache, but proceeding with API call', { id, cardIds: cards.map(c => c.id).slice(0, 5) })
       }
       
       // Adapter les noms de propriétés (deckId -> deck_id)
@@ -171,8 +181,11 @@ export function AppProvider({ children }) {
       if (updates.repetitions !== undefined) apiUpdates.repetitions = updates.repetitions
       if (updates.nextReview !== undefined) apiUpdates.next_review = updates.nextReview
 
-      console.log('[AppContext] Calling api.updateCard with:', { id, apiUpdates })
+      console.log('[AppContext] Calling api.updateCard (NOT updateDeck!) with:', { id, apiUpdates, endpoint: `/cards/${id}` })
+      
+      // IMPORTANT: Appeler api.updateCard, PAS api.updateDeck
       const updatedCard = await api.updateCard(id, apiUpdates)
+      console.log('[AppContext] api.updateCard returned:', updatedCard)
       
       setCards((prev) =>
         prev.map((card) => (card.id === id ? updatedCard : card))

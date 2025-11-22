@@ -121,14 +121,16 @@ export default function DeckDetail() {
     if (validateForm()) {
       try {
         if (editingCard) {
-          console.log('[DeckDetail] Updating card - Full editingCard object:', editingCard)
+          console.log('[DeckDetail] Updating card - Full editingCard object:', JSON.stringify(editingCard, null, 2))
           console.log('[DeckDetail] Updating card:', { 
             id: editingCard.id, 
             deck_id: editingCard.deck_id,
             deckId: deckId,
             question: formData.question.trim(), 
             answer: formData.answer.trim(),
-            isIdSameAsDeckId: editingCard.id === deckId
+            isIdSameAsDeckId: editingCard.id === deckId,
+            editingCardType: typeof editingCard,
+            editingCardKeys: Object.keys(editingCard || {})
           })
           
           if (!editingCard.id) {
@@ -146,10 +148,18 @@ export default function DeckDetail() {
             throw new Error(`Erreur critique: L'ID de la carte (${editingCard.id}) est identique à l'ID du deck (${deckId}). Cela ne devrait jamais arriver.`)
           }
           
-          await updateCard(editingCard.id, {
+          // Vérification supplémentaire : s'assurer qu'on a bien une carte (avec deck_id) et pas un deck
+          if (!editingCard.deck_id && editingCard.id === deckId) {
+            console.error('[DeckDetail] CRITICAL: editingCard appears to be a deck, not a card!', editingCard)
+            throw new Error('Erreur: Vous essayez de modifier un deck au lieu d\'une carte. Veuillez utiliser le bouton de modification du deck.')
+          }
+          
+          console.log('[DeckDetail] About to call updateCard with:', { id: editingCard.id, updates: { question: formData.question.trim(), answer: formData.answer.trim() } })
+          const result = await updateCard(editingCard.id, {
             question: formData.question.trim(),
             answer: formData.answer.trim(),
           })
+          console.log('[DeckDetail] updateCard result:', result)
         } else {
           await createCard({
             deckId: deck.id,
@@ -184,7 +194,8 @@ export default function DeckDetail() {
       deck_id: card?.deck_id,
       question: card?.question?.substring(0, 50),
       hasId: !!card?.id,
-      allKeys: Object.keys(card || {})
+      allKeys: Object.keys(card || {}),
+      isDeck: card?.id === deckId || (!card?.deck_id && card?.id === deck?.id)
     })
     
     if (!card) {
@@ -200,12 +211,36 @@ export default function DeckDetail() {
     }
     
     // Vérifier que l'ID n'est pas celui du deck
-    if (card.id === deckId) {
-      console.error('[DeckDetail] Card ID matches deck ID! This is wrong.', { cardId: card.id, deckId })
-      alert('Erreur: L\'ID de la carte correspond à l\'ID du deck. Cela ne devrait pas arriver.')
+    if (card.id === deckId || card.id === deck?.id) {
+      console.error('[DeckDetail] CRITICAL: Card ID matches deck ID! This is wrong.', { 
+        cardId: card.id, 
+        deckId: deckId,
+        deckIdFromDeck: deck?.id,
+        cardObject: card
+      })
+      alert('Erreur: L\'ID de la carte correspond à l\'ID du deck. Cela ne devrait pas arriver. Veuillez utiliser le bouton de modification du deck pour modifier le deck.')
       return
     }
     
+    // Vérifier que c'est bien une carte (doit avoir deck_id)
+    if (!card.deck_id && card.id !== deckId) {
+      console.warn('[DeckDetail] Card missing deck_id, but ID is different from deck ID. Proceeding...', card)
+    }
+    
+    // Vérification finale : s'assurer que ce n'est pas le deck lui-même
+    if (card.id === deck?.id || (!card.deck_id && card.id === deckId)) {
+      console.error('[DeckDetail] CRITICAL: This appears to be a deck, not a card!', {
+        cardId: card.id,
+        deckId: deckId,
+        deckIdFromDeck: deck?.id,
+        hasDeckId: !!card.deck_id,
+        cardObject: card
+      })
+      alert('Erreur: Vous essayez de modifier un deck au lieu d\'une carte. Veuillez utiliser le bouton de modification du deck.')
+      return
+    }
+    
+    console.log('[DeckDetail] Setting editingCard to:', { id: card.id, deck_id: card.deck_id, question: card.question?.substring(0, 30) })
     setEditingCard(card)
     setFormData({ question: card.question || '', answer: card.answer || '' })
     setIsModalOpen(true)
