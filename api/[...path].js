@@ -147,6 +147,19 @@ app.use(errorHandler)
 // Handler pour Vercel Serverless Functions
 
 export default async function handler(req, res) {
+  // Log IMMÉDIATEMENT pour voir toutes les requêtes (même celles qui échouent)
+  console.log(`[API Handler START] ${req.method} ${req.url || req.originalUrl || '/'}`, {
+    originalUrl: req.originalUrl,
+    url: req.url,
+    query: req.query,
+    queryPath: req.query?.path,
+    method: req.method,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers['authorization'] ? 'present' : 'missing'
+    }
+  })
+
   try {
     // Dans Vercel avec api/[...path].js, le chemin peut être dans req.query.path
     // Exemple: requête à /api/decks/123 → req.query.path = ['decks', '123']

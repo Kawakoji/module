@@ -185,6 +185,7 @@ export const api = {
    * Mettre à jour un deck
    */
   async updateDeck(deckId, updates) {
+    console.log('[API] updateDeck called with:', { deckId, updates })
     return request(`/decks/${deckId}`, {
       method: 'PUT',
       body: updates,
@@ -195,6 +196,7 @@ export const api = {
    * Supprimer un deck
    */
   async deleteDeck(deckId) {
+    console.log('[API] deleteDeck called with:', { deckId })
     return request(`/decks/${deckId}`, {
       method: 'DELETE',
     })
