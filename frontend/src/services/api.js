@@ -67,12 +67,28 @@ async function request(endpoint, options = {}) {
     const contentType = response.headers.get('content-type')
     let data
     if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        // Si le JSON est invalide, essayer de lire le texte
+        const text = await response.text()
+        console.error('[API] Invalid JSON response:', text.substring(0, 200))
+        throw new Error(`Server returned invalid JSON: ${response.status} ${response.statusText}`)
+      }
     } else {
       // Si ce n'est pas du JSON, lire le texte
       const text = await response.text()
       console.error('[API] Non-JSON response:', text.substring(0, 200))
-      throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`)
+      // Pour les erreurs 404, essayer de parser comme JSON quand même
+      if (response.status === 404 && text.trim().startsWith('{')) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          throw new Error(`Route not found: ${url}`)
+        }
+      } else {
+        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`)
+      }
     }
 
     // Si la réponse n'est pas OK, lancer une erreur

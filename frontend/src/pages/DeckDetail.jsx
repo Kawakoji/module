@@ -12,16 +12,19 @@ import DocumentUploadModal from '../components/DocumentUploadModal'
 
 export default function DeckDetail() {
   const { deckId } = useParams()
-  const { decks, getDeckCards, createCard, updateCard, deleteCard, loadDecks } = useApp()
+  const { decks, getDeckCards, createCard, updateCard, deleteCard, updateDeck, loadDecks } = useApp()
   const [deck, setDeck] = useState(decks.find((d) => d.id === deckId))
   const [deckCards, setDeckCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false)
+  const [isDeckEditModalOpen, setIsDeckEditModalOpen] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   const [formData, setFormData] = useState({ question: '', answer: '' })
+  const [deckFormData, setDeckFormData] = useState({ name: '', description: '' })
   const [errors, setErrors] = useState({})
+  const [deckErrors, setDeckErrors] = useState({})
   const [flippedCards, setFlippedCards] = useState({})
 
   // Mettre à jour le deck quand la liste change
@@ -161,6 +164,49 @@ export default function DeckDetail() {
     }))
   }
 
+  const handleEditDeck = () => {
+    setDeckFormData({
+      name: deck.name || '',
+      description: deck.description || '',
+    })
+    setDeckErrors({})
+    setIsDeckEditModalOpen(true)
+  }
+
+  const validateDeckForm = () => {
+    const newErrors = {}
+    if (!deckFormData.name.trim()) {
+      newErrors.name = 'Le nom est requis'
+    }
+    setDeckErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleDeckSubmit = async (e) => {
+    e.preventDefault()
+    if (validateDeckForm()) {
+      try {
+        const updatedDeck = await updateDeck(deck.id, {
+          name: deckFormData.name.trim(),
+          description: deckFormData.description.trim(),
+        })
+        setDeck(updatedDeck)
+        setDeckFormData({ name: '', description: '' })
+        setDeckErrors({})
+        setIsDeckEditModalOpen(false)
+      } catch (error) {
+        console.error('Error updating deck:', error)
+        if (error.field) {
+          setDeckErrors({
+            [error.field]: error.message || 'Erreur de validation'
+          })
+        } else {
+          alert('Erreur lors de la sauvegarde : ' + error.message)
+        }
+      }
+    }
+  }
+
   return (
     <div className="px-4 sm:px-0">
       {/* Header */}
@@ -172,10 +218,32 @@ export default function DeckDetail() {
           ← Retour aux decks
         </Link>
         <div className="flex justify-between items-center mt-2">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {deck.name}
-            </h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {deck.name}
+              </h1>
+              <button
+                onClick={handleEditDeck}
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                aria-label="Modifier le deck"
+                title="Modifier le deck"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+            </div>
             {deck.description && (
               <p className="text-gray-600 dark:text-gray-400 mt-2">
                 {deck.description}
@@ -424,6 +492,58 @@ export default function DeckDetail() {
           }
         }}
       />
+
+      {/* Modal de modification de deck */}
+      <Modal
+        isOpen={isDeckEditModalOpen}
+        onClose={() => {
+          setIsDeckEditModalOpen(false)
+          setDeckFormData({ name: '', description: '' })
+          setDeckErrors({})
+        }}
+        title="Modifier le deck"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsDeckEditModalOpen(false)
+                setDeckFormData({ name: '', description: '' })
+                setDeckErrors({})
+              }}
+            >
+              Annuler
+            </Button>
+            <Button onClick={handleDeckSubmit}>
+              Enregistrer
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleDeckSubmit} className="space-y-4">
+          <Input
+            label="Nom du deck"
+            value={deckFormData.name}
+            onChange={(e) =>
+              setDeckFormData({ ...deckFormData, name: e.target.value })
+            }
+            error={deckErrors.name}
+            required
+            placeholder="Ex: Histoire de France"
+            autoFocus
+          />
+          <Textarea
+            label="Description (optionnel)"
+            value={deckFormData.description}
+            onChange={(e) =>
+              setDeckFormData({ ...deckFormData, description: e.target.value })
+            }
+            error={deckErrors.description}
+            placeholder="Décrivez le contenu de ce deck..."
+            rows={3}
+          />
+        </form>
+      </Modal>
     </div>
   )
 }

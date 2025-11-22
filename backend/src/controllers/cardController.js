@@ -119,16 +119,32 @@ export const cardController = {
       const { id } = req.params
       const { question, answer, ease_factor, interval, repetitions, next_review } = req.body
 
+      console.log('[CardController] updateCard called with:', { id, hasQuestion: !!question, hasAnswer: !!answer })
+
+      if (!id) {
+        throw new ValidationError('Card ID is required', 'id')
+      }
+
       // Vérifier que la carte appartient à l'utilisateur
       const card = await cardService.getCardById(id)
+      
+      if (!card) {
+        throw new NotFoundError('Carte')
+      }
+
       const { supabase } = await import('../config/supabase.js')
-      const { data: deck } = await supabase
+      const { data: deck, error: deckError } = await supabase
         .from('decks')
         .select('user_id')
         .eq('id', card.deck_id)
         .single()
 
-      if (!deck || deck.user_id !== req.user.id) {
+      if (deckError || !deck) {
+        console.error('[CardController] Error fetching deck:', deckError)
+        throw new NotFoundError('Deck')
+      }
+
+      if (deck.user_id !== req.user.id) {
         throw new ForbiddenError()
       }
 
@@ -143,6 +159,7 @@ export const cardController = {
 
       res.json(updatedCard)
     } catch (error) {
+      console.error('[CardController] Error in updateCard:', error)
       next(error)
     }
   },
