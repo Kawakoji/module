@@ -12,8 +12,8 @@ import DocumentUploadModal from '../components/DocumentUploadModal'
 
 export default function DeckDetail() {
   const { deckId } = useParams()
-  const { decks, getDeckCards, createCard, updateCard, deleteCard } = useApp()
-  const deck = decks.find((d) => d.id === deckId)
+  const { decks, getDeckCards, createCard, updateCard, deleteCard, loadDecks } = useApp()
+  const [deck, setDeck] = useState(decks.find((d) => d.id === deckId))
   const [deckCards, setDeckCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -24,12 +24,42 @@ export default function DeckDetail() {
   const [errors, setErrors] = useState({})
   const [flippedCards, setFlippedCards] = useState({})
 
+  // Mettre à jour le deck quand la liste change
+  useEffect(() => {
+    const foundDeck = decks.find((d) => d.id === deckId)
+    if (foundDeck) {
+      setDeck(foundDeck)
+    }
+  }, [decks, deckId])
+
+  // Charger le deck depuis l'API au montage si pas trouvé dans la liste
+  useEffect(() => {
+    if (deckId && !deck) {
+      loadDeckFromAPI()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId]) // Seulement au montage ou changement de deckId
+
   // Charger les cartes du deck
   useEffect(() => {
-    if (deckId) {
+    if (deckId && deck) {
       loadCards()
     }
-  }, [deckId])
+  }, [deckId, deck])
+
+  const loadDeckFromAPI = async () => {
+    try {
+      const { api } = await import('../services/api')
+      const deckData = await api.getDeck(deckId)
+      setDeck(deckData)
+      // Recharger les decks pour ajouter celui-ci à la liste
+      if (loadDecks) {
+        await loadDecks()
+      }
+    } catch (error) {
+      console.error('Error loading deck:', error)
+    }
+  }
 
   const loadCards = async () => {
     try {

@@ -5,7 +5,20 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  const missing = []
+  if (!supabaseUrl) missing.push('VITE_SUPABASE_URL')
+  if (!supabaseAnonKey) missing.push('VITE_SUPABASE_ANON_KEY')
+  throw new Error(
+    `Missing Supabase environment variables: ${missing.join(', ')}\n` +
+    `Please create a .env file in the frontend directory with:\n` +
+    `VITE_SUPABASE_URL=your_supabase_url\n` +
+    `VITE_SUPABASE_ANON_KEY=your_supabase_anon_key`
+  )
+}
+
+// Vérifier que l'URL est valide
+if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
+  throw new Error(`Invalid VITE_SUPABASE_URL: must start with http:// or https://`)
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -42,32 +55,82 @@ export function AuthProvider({ children }) {
    * Inscription avec email et mot de passe
    */
   const signUp = async (email, password, options = {}) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: options.fullName || '',
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: options.fullName || '',
+          },
+          ...options,
         },
-        ...options,
-      },
-    })
+      })
 
-    if (error) throw error
-    return data
+      if (error) {
+        // Améliorer le message d'erreur
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error(
+            'Impossible de se connecter à Supabase. Vérifiez que:\n' +
+            '1. VITE_SUPABASE_URL est correcte dans votre fichier .env\n' +
+            '2. VITE_SUPABASE_ANON_KEY est correcte dans votre fichier .env\n' +
+            '3. Le serveur de développement est redémarré après avoir créé/modifié le .env\n' +
+            '4. Votre connexion internet fonctionne'
+          )
+        }
+        throw error
+      }
+      return data
+    } catch (error) {
+      // Capturer les erreurs réseau
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(
+          'Erreur de connexion réseau. Vérifiez:\n' +
+          '1. Que les variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont définies dans frontend/.env\n' +
+          '2. Que le serveur de développement a été redémarré après la création du .env\n' +
+          '3. Que votre connexion internet fonctionne'
+        )
+      }
+      throw error
+    }
   }
 
   /**
    * Connexion avec email et mot de passe
    */
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) throw error
-    return data
+      if (error) {
+        // Améliorer le message d'erreur
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error(
+            'Impossible de se connecter à Supabase. Vérifiez que:\n' +
+            '1. VITE_SUPABASE_URL est correcte dans votre fichier .env\n' +
+            '2. VITE_SUPABASE_ANON_KEY est correcte dans votre fichier .env\n' +
+            '3. Le serveur de développement est redémarré après avoir créé/modifié le .env\n' +
+            '4. Votre connexion internet fonctionne'
+          )
+        }
+        throw error
+      }
+      return data
+    } catch (error) {
+      // Capturer les erreurs réseau
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(
+          'Erreur de connexion réseau. Vérifiez:\n' +
+          '1. Que les variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont définies dans frontend/.env\n' +
+          '2. Que le serveur de développement a été redémarré après la création du .env\n' +
+          '3. Que votre connexion internet fonctionne'
+        )
+      }
+      throw error
+    }
   }
 
   /**
@@ -109,6 +172,10 @@ export function useAuth() {
 
 // Exporter supabase pour utilisation dans les services
 export { supabase }
+
+
+
+
 
 
 

@@ -122,8 +122,15 @@ export function AppProvider({ children }) {
       // Ajouter la carte à l'état local
       setCards((prev) => [...prev, newCard])
       
-      // Recharger les decks pour mettre à jour le compteur
-      await loadDecks()
+      // Mettre à jour le compteur du deck sans recharger tous les decks
+      // Cela évite de perdre les decks si le rechargement échoue
+      setDecks((prev) =>
+        prev.map((deck) =>
+          deck.id === cardData.deckId
+            ? { ...deck, card_count: (deck.card_count || 0) + 1 }
+            : deck
+        )
+      )
       
       return newCard
     } catch (err) {
@@ -158,11 +165,23 @@ export function AppProvider({ children }) {
 
   const deleteCard = async (id) => {
     try {
+      // Récupérer la carte avant de la supprimer pour connaître son deck_id
+      const cardToDelete = cards.find((card) => card.id === id)
+      const deckId = cardToDelete?.deck_id
+      
       await api.deleteCard(id)
       setCards((prev) => prev.filter((card) => card.id !== id))
       
-      // Recharger les decks pour mettre à jour le compteur
-      await loadDecks()
+      // Mettre à jour le compteur du deck sans recharger tous les decks
+      if (deckId) {
+        setDecks((prev) =>
+          prev.map((deck) =>
+            deck.id === deckId
+              ? { ...deck, card_count: Math.max(0, (deck.card_count || 0) - 1) }
+              : deck
+          )
+        )
+      }
     } catch (err) {
       console.error('Error deleting card:', err)
       throw err
