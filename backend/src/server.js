@@ -55,9 +55,14 @@ app.use('/api/backup', backupRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/profile', profileRoutes)
 
-// Route 404
+// Route 404 - doit être après toutes les routes API
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' })
+  console.log(`[Server] 404 - Route not found: ${req.method} ${req.path}`)
+  res.status(404).json({ 
+    error: 'Route not found',
+    method: req.method,
+    path: req.path
+  })
 })
 
 // Middleware de gestion des erreurs (doit être en dernier)

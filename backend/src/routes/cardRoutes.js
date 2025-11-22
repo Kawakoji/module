@@ -8,12 +8,17 @@ const router = express.Router()
 router.use(authenticate)
 
 // Routes pour les cartes
+// IMPORTANT: Les routes spécifiques doivent être définies AVANT les routes paramétrées
 router.get('/review', cardController.getCardsToReview)
 router.get('/deck/:deckId', cardController.getCardsByDeck)
-router.get('/:id', cardController.getCardById)
 router.post('/', cardController.createCard)
-router.put('/:id', cardController.updateCard)
+// PUT et DELETE avant GET pour éviter les conflits
+router.put('/:id', (req, res, next) => {
+  console.log('[CardRoutes] PUT /:id called with id:', req.params.id)
+  next()
+}, cardController.updateCard)
 router.delete('/:id', cardController.deleteCard)
+router.get('/:id', cardController.getCardById) // GET doit être en dernier pour éviter les conflits
 
 export default router
 

@@ -108,6 +108,10 @@ export default function DeckDetail() {
     if (validateForm()) {
       try {
         if (editingCard) {
+          console.log('[DeckDetail] Updating card:', { id: editingCard.id, question: formData.question.trim(), answer: formData.answer.trim() })
+          if (!editingCard.id) {
+            throw new Error('ID de carte manquant')
+          }
           await updateCard(editingCard.id, {
             question: formData.question.trim(),
             answer: formData.answer.trim(),
@@ -140,6 +144,12 @@ export default function DeckDetail() {
   }
 
   const handleEdit = (card) => {
+    console.log('[DeckDetail] handleEdit called with card:', card)
+    if (!card || !card.id) {
+      console.error('[DeckDetail] Invalid card data:', card)
+      alert('Erreur: Données de carte invalides')
+      return
+    }
     setEditingCard(card)
     setFormData({ question: card.question, answer: card.answer })
     setIsModalOpen(true)

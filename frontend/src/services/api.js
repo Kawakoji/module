@@ -78,16 +78,36 @@ async function request(endpoint, options = {}) {
     } else {
       // Si ce n'est pas du JSON, lire le texte
       const text = await response.text()
-      console.error('[API] Non-JSON response:', text.substring(0, 200))
+      console.error('[API] Non-JSON response:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: contentType,
+        text: text.substring(0, 500),
+        url
+      })
+      
       // Pour les erreurs 404, essayer de parser comme JSON quand même
-      if (response.status === 404 && text.trim().startsWith('{')) {
-        try {
-          data = JSON.parse(text)
-        } catch {
-          throw new Error(`Route not found: ${url}`)
+      if (response.status === 404) {
+        // Essayer de parser comme JSON
+        if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+          try {
+            data = JSON.parse(text)
+            // Si on a réussi à parser, continuer avec le traitement normal
+            // Le code ci-dessous gérera l'erreur 404
+          } catch (parseError) {
+            console.error('[API] Failed to parse 404 response as JSON:', parseError)
+            throw new Error(`Route not found: ${url}. Server response: ${text.substring(0, 100)}`)
+          }
+        } else {
+          // Si ce n'est pas du JSON, créer un objet d'erreur standard
+          data = {
+            error: 'Not Found',
+            message: `Route not found: ${url}`,
+            details: text.substring(0, 200)
+          }
         }
       } else {
-        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`)
+        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`)
       }
     }
 
@@ -224,6 +244,10 @@ export const api = {
    * Mettre à jour une carte
    */
   async updateCard(cardId, updates) {
+    if (!cardId) {
+      throw new Error('Card ID is required')
+    }
+    console.log('[API] updateCard called with:', { cardId, updates })
     return request(`/cards/${cardId}`, {
       method: 'PUT',
       body: updates,
