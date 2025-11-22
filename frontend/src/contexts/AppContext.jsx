@@ -141,6 +141,27 @@ export function AppProvider({ children }) {
 
   const updateCard = async (id, updates) => {
     try {
+      console.log('[AppContext] updateCard called with:', { id, idType: typeof id, idLength: id?.length, updates })
+      
+      // Vérifier que l'ID est bien fourni
+      if (!id) {
+        throw new Error('Card ID is required')
+      }
+      
+      // Vérifier que l'ID ressemble à un UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(id)) {
+        console.error('[AppContext] Invalid card ID format:', id)
+        throw new Error(`Invalid card ID format: ${id}. Expected UUID format.`)
+      }
+      
+      // Vérifier que l'ID n'est pas celui d'un deck (en vérifiant dans les decks)
+      const isDeckId = decks.some(deck => deck.id === id)
+      if (isDeckId) {
+        console.error('[AppContext] ERROR: The provided ID is a deck ID, not a card ID!', { id, decks: decks.map(d => d.id) })
+        throw new Error(`The provided ID (${id}) is a deck ID, not a card ID. Cannot update card with deck ID.`)
+      }
+      
       // Adapter les noms de propriétés (deckId -> deck_id)
       const apiUpdates = {}
       if (updates.question !== undefined) apiUpdates.question = updates.question
@@ -150,6 +171,7 @@ export function AppProvider({ children }) {
       if (updates.repetitions !== undefined) apiUpdates.repetitions = updates.repetitions
       if (updates.nextReview !== undefined) apiUpdates.next_review = updates.nextReview
 
+      console.log('[AppContext] Calling api.updateCard with:', { id, apiUpdates })
       const updatedCard = await api.updateCard(id, apiUpdates)
       
       setCards((prev) =>
@@ -158,7 +180,7 @@ export function AppProvider({ children }) {
       
       return updatedCard
     } catch (err) {
-      console.error('Error updating card:', err)
+      console.error('[AppContext] Error updating card:', err)
       throw err
     }
   }

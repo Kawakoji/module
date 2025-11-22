@@ -121,10 +121,31 @@ export default function DeckDetail() {
     if (validateForm()) {
       try {
         if (editingCard) {
-          console.log('[DeckDetail] Updating card:', { id: editingCard.id, question: formData.question.trim(), answer: formData.answer.trim() })
+          console.log('[DeckDetail] Updating card - Full editingCard object:', editingCard)
+          console.log('[DeckDetail] Updating card:', { 
+            id: editingCard.id, 
+            deck_id: editingCard.deck_id,
+            deckId: deckId,
+            question: formData.question.trim(), 
+            answer: formData.answer.trim(),
+            isIdSameAsDeckId: editingCard.id === deckId
+          })
+          
           if (!editingCard.id) {
-            throw new Error('ID de carte manquant')
+            console.error('[DeckDetail] Card missing ID. Full card object:', editingCard)
+            throw new Error('ID de carte manquant. Structure de la carte: ' + JSON.stringify(Object.keys(editingCard)))
           }
+          
+          // Vérification finale : s'assurer que l'ID n'est pas celui du deck
+          if (editingCard.id === deckId) {
+            console.error('[DeckDetail] CRITICAL ERROR: Card ID is the same as deck ID!', {
+              cardId: editingCard.id,
+              deckId: deckId,
+              cardObject: editingCard
+            })
+            throw new Error(`Erreur critique: L'ID de la carte (${editingCard.id}) est identique à l'ID du deck (${deckId}). Cela ne devrait jamais arriver.`)
+          }
+          
           await updateCard(editingCard.id, {
             question: formData.question.trim(),
             answer: formData.answer.trim(),
