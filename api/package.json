@@ -1,6 +1,9 @@
 {
   "name": "moduleia-api",
   "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@vercel/node": "^3.0.7"
+  }
 }
 
