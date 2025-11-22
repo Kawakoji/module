@@ -117,6 +117,7 @@ apiRouter.get('/health', (req, res) => {
 })
 
 // Routes API sur le routeur
+// IMPORTANT: Ne pas mettre /api ici car Vercel l'ajoute déjà
 apiRouter.use('/decks', deckRoutes)
 apiRouter.use('/cards', cardRoutes)
 apiRouter.use('/reviews', reviewRoutes)
@@ -126,8 +127,10 @@ apiRouter.use('/backup', backupRoutes)
 apiRouter.use('/stats', statsRoutes)
 apiRouter.use('/profile', profileRoutes)
 
-// Monter le routeur API sur /api
-app.use('/api', apiRouter)
+// IMPORTANT: Dans Vercel avec api/[...path].js, le chemin arrive SANS le préfixe /api
+// Exemple: requête à /api/decks/123 → req.url = '/decks/123' (sans /api)
+// Donc on monte le routeur directement sur / (pas /api)
+app.use('/', apiRouter)
 
 // Route 404
 app.use((req, res) => {
@@ -138,54 +141,30 @@ app.use((req, res) => {
 app.use(errorHandler)
 
 // Handler pour Vercel Serverless Functions
-// Utiliser Express directement sans @vercel/node
-export default async function (req, res) {
-  // S'assurer immédiatement que le Content-Type est JSON
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  
-  // Wrapper pour garantir JSON
-  const originalJson = res.json
-  const originalSend = res.send
-  const originalStatus = res.status
-  
-  res.json = function(data) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    return originalJson.call(this, data)
-  }
-  
-  res.send = function(data) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    if (typeof data === 'string' && !data.startsWith('{') && !data.startsWith('[')) {
-      return originalJson.call(this, { message: data })
-    }
-    return originalSend.call(this, data)
-  }
-  
-  res.status = function(code) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    return originalStatus.call(this, code)
-  }
 
+export default async function handler(req, res) {
   try {
-    // Dans Vercel avec [...path], le chemin est dans req.query.path
-    // Exemple: /api/decks/123 devient { path: ['decks', '123'] }
+    // Dans Vercel avec api/[...path].js, le chemin arrive SANS le préfixe /api
+    // Exemple: requête à /api/decks/123 → req.url = '/decks/123' (sans /api)
+    // OU req.query.path = ['decks', '123']
+    
     let path = req.url || req.originalUrl || '/'
     
-    // Si le chemin ne commence pas par /api, le reconstruire depuis req.query.path
-    if (!path.startsWith('/api')) {
-      if (req.query && req.query.path) {
-        // req.query.path est un tableau ou une chaîne
-        const pathArray = Array.isArray(req.query.path) 
-          ? req.query.path 
-          : (typeof req.query.path === 'string' ? req.query.path.split('/') : [])
-        path = `/api/${pathArray.join('/')}`
-      } else {
-        // Si pas de query.path, essayer de reconstruire depuis req.url
-        path = path.startsWith('/') ? `/api${path}` : `/api/${path}`
-      }
+    // Si le chemin est dans req.query.path (pattern [...path])
+    if (req.query && req.query.path) {
+      const pathArray = Array.isArray(req.query.path) 
+        ? req.query.path 
+        : (typeof req.query.path === 'string' ? req.query.path.split('/').filter(Boolean) : [])
+      path = `/${pathArray.join('/')}`
     }
     
-    // Mettre à jour req.url et req.originalUrl pour Express
+    // S'assurer que le chemin commence par /
+    if (!path.startsWith('/')) {
+      path = `/${path}`
+    }
+    
+    // Mettre à jour req.url pour Express
+    // Dans Vercel, req.url peut déjà être correct (sans /api)
     req.url = path
     req.originalUrl = path
     
@@ -204,8 +183,7 @@ export default async function (req, res) {
       body: req.body ? JSON.stringify(req.body).substring(0, 200) : undefined
     })
     
-    // Utiliser Express directement
-    // Express peut être appelé comme fonction
+    // Utiliser Express directement (sans wrapper @vercel/node pour l'instant)
     app(req, res)
   } catch (error) {
     console.error('[API] Serverless function error:', error)
