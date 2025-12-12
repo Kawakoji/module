@@ -4,27 +4,29 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    @apply bg-[#0a0a0f] text-white;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+    @apply bg-[#13131f] border border-[#2a2a35] rounded-2xl shadow-md p-6;
   }
   
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium py-2 px-4 rounded-2xl transition-colors shadow-[0_0_20px_rgba(124,58,237,0.3)];
   }
   
   .btn-secondary {
-    @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-[#13131f] border border-[#2a2a35] hover:bg-[#1a1a2a] text-white font-medium py-2 px-4 rounded-2xl transition-colors;
   }
   
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500;
+    @apply w-full px-4 py-2 border border-[#2a2a35] rounded-2xl bg-[#13131f] text-white focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:border-[#7c3aed];
   }
 }
+
+
 
 
 

@@ -127,17 +127,17 @@ export default function AIGenerateModal({
     >
       <div className="space-y-6">
         {/* Sélection du mode */}
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 border-b border-[#2a2a35]">
           <button
             onClick={() => {
               setMode('text')
               setGeneratedCards([])
               setError('')
             }}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors rounded-2xl ${
               mode === 'text'
-                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'border-[#7c3aed] text-[#7c3aed]'
+                : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
             Depuis un texte
@@ -148,10 +148,10 @@ export default function AIGenerateModal({
               setGeneratedCards([])
               setError('')
             }}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors rounded-2xl ${
               mode === 'topic'
-                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'border-[#7c3aed] text-[#7c3aed]'
+                : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
             Depuis un sujet
@@ -203,7 +203,7 @@ export default function AIGenerateModal({
 
         {/* Erreur */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-2xl text-sm">
             {error}
           </div>
         )}
@@ -211,25 +211,25 @@ export default function AIGenerateModal({
         {/* Cartes générées */}
         {generatedCards.length > 0 && (
           <div className="space-y-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-400">
               {generatedCards.length} carte{generatedCards.length !== 1 ? 's' : ''} générée{generatedCards.length !== 1 ? 's' : ''} :
             </div>
             <div className="max-h-96 overflow-y-auto space-y-3">
               {generatedCards.map((card, index) => (
                 <Card key={index} className="p-4">
                   <div className="mb-2">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-400">
                       Question {index + 1} :
                     </span>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                    <div className="text-sm font-medium text-white mt-1">
                       {card.question}
                     </div>
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-400">
                       Réponse :
                     </span>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    <div className="text-sm text-gray-300 mt-1">
                       {card.answer}
                     </div>
                   </div>
@@ -242,8 +242,8 @@ export default function AIGenerateModal({
         {/* Indicateur de génération */}
         {generating && generatedCards.length === 0 && (
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#7c3aed]"></div>
+            <p className="mt-4 text-gray-400">
               L'IA génère vos cartes...
             </p>
           </div>
@@ -252,6 +252,8 @@ export default function AIGenerateModal({
     </Modal>
   )
 }
+
+
 
 
 

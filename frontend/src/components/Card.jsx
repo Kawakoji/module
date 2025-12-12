@@ -21,7 +21,7 @@ export default function Card({
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3, delay }}
       whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : {}}
-      className={`card ${className}`}
+      className={`bg-[#13131f] border border-[#2a2a35] rounded-2xl shadow-md p-6 ${className}`}
       {...props}
     >
       {children}

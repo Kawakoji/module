@@ -64,20 +64,20 @@ export default function Modal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2, type: 'spring', damping: 25 }}
-              className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden ${className}`}
+              className={`relative bg-[#13131f] border border-[#2a2a35] rounded-2xl shadow-xl shadow-[0_0_20px_rgba(124,58,237,0.3)] max-w-lg w-full max-h-[90vh] overflow-hidden ${className}`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               {title && (
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between p-6 border-b border-[#2a2a35]">
+                  <h3 className="text-xl font-semibold text-white">
                     {title}
                   </h3>
                   <motion.button
                     onClick={onClose}
                     whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
-                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
                     <svg
                       className="w-6 h-6"
@@ -103,7 +103,7 @@ export default function Modal({
 
               {/* Footer */}
               {footer && (
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-end gap-3 p-6 border-t border-[#2a2a35]">
                   {footer}
                 </div>
               )}

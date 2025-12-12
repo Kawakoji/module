@@ -19,7 +19,7 @@ export default function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          className="block text-sm font-medium text-white mb-1"
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -27,15 +27,17 @@ export default function Input({
       )}
       <input
         id={inputId}
-        className={`input ${error ? 'border-red-500 focus:ring-red-500' : ''} ${className}`}
+        className={`w-full px-4 py-2 border border-[#2a2a35] rounded-2xl bg-[#13131f] text-white focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:border-[#7c3aed] ${error ? 'border-red-500 focus:ring-red-500' : ''} ${className}`}
         {...props}
       />
       {error && (
-        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-1 text-sm text-red-400">{error}</p>
       )}
     </div>
   )
 }
+
+
 
 
 

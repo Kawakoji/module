@@ -17,16 +17,16 @@ export default function Button({
   ...props
 }) {
   const baseStyles =
-    'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+    'font-medium rounded-2xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0a0a0f] disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variants = {
     primary:
-      'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
+      'bg-[#7c3aed] hover:bg-[#6d28d9] text-white focus:ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.3)]',
     secondary:
-      'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+      'bg-[#13131f] border border-[#2a2a35] hover:bg-[#1a1a2a] text-white focus:ring-[#7c3aed]',
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 rounded-2xl',
     ghost:
-      'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500',
+      'bg-transparent hover:bg-[#13131f] text-gray-400 hover:text-white focus:ring-[#7c3aed]',
   }
 
   const sizes = {

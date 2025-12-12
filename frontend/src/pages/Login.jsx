@@ -29,20 +29,20 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0f]">
       <Card className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-white mb-2">
             Connexion
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-400">
             Connectez-vous à votre compte Moduleia
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-2xl text-sm">
               {error}
             </div>
           )}
@@ -78,12 +78,12 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-gray-400">
             Pas encore de compte ?{' '}
           </span>
           <Link
             to="/signup"
-            className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+            className="text-[#7c3aed] hover:underline font-medium"
           >
             S'inscrire
           </Link>
@@ -92,6 +92,8 @@ export default function Login() {
     </div>
   )
 }
+
+
 
 
 

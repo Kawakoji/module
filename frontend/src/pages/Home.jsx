@@ -30,10 +30,10 @@ export default function Home() {
     <div className="px-4 sm:px-0">
       <div className="max-w-4xl mx-auto">
         <Card className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-4xl font-bold text-white mb-4">
             Bienvenue sur Moduleia
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+          <p className="text-lg text-gray-400 mb-8">
             Votre application intelligente de flashcards avec assistance IA.
           </p>
 
@@ -54,26 +54,26 @@ export default function Home() {
         {/* Statistiques rapides */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
-            <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
+            <div className="text-3xl font-bold text-[#7c3aed] mb-2">
               {loading ? '...' : decks.length}
             </div>
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-gray-400">
               Deck{decks.length !== 1 ? 's' : ''}
             </div>
           </Card>
           <Card>
-            <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
+            <div className="text-3xl font-bold text-[#7c3aed] mb-2">
               {loading ? '...' : cardsCount}
             </div>
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-gray-400">
               Carte{cardsCount !== 1 ? 's' : ''}
             </div>
           </Card>
           <Card>
-            <div className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
+            <div className="text-3xl font-bold text-[#7c3aed] mb-2">
               {cardsToReview.length}
             </div>
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-gray-400">
               À réviser
             </div>
           </Card>
@@ -81,27 +81,27 @@ export default function Home() {
 
         {/* Fonctionnalités */}
         <Card>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-2xl font-bold text-white mb-6">
             Fonctionnalités
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2">📚 Créez des decks</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+            <div className="p-6 bg-[#1a1a2a] border border-[#2a2a35] rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-white">📚 Créez des decks</h3>
+              <p className="text-gray-400">
                 Organisez vos cartes par catégories et sujets.
               </p>
             </div>
 
-            <div className="p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2">🤖 Génération IA</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+            <div className="p-6 bg-[#1a1a2a] border border-[#2a2a35] rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-white">🤖 Génération IA</h3>
+              <p className="text-gray-400">
                 Générez automatiquement des cartes à partir de texte.
               </p>
             </div>
 
-            <div className="p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2">📊 Révision espacée</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+            <div className="p-6 bg-[#1a1a2a] border border-[#2a2a35] rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-white">📊 Révision espacée</h3>
+              <p className="text-gray-400">
                 Optimisez votre mémorisation avec l'algorithme SM2.
               </p>
             </div>

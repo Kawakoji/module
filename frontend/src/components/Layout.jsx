@@ -26,15 +26,15 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0a0a0f]">
       {/* Navigation */}
-      <nav className="bg-white dark:bg-gray-800 shadow-sm">
+      <nav className="bg-[#13131f] border-b border-[#2a2a35] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Link to="/">
-                  <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                  <h1 className="text-2xl font-bold text-white">
                     🎴 Moduleia
                   </h1>
                 </Link>
@@ -45,10 +45,10 @@ export default function Layout({ children }) {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium rounded-2xl ${
                         location.pathname === item.path
-                          ? 'border-primary-500 text-gray-900 dark:text-gray-100'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
+                          ? 'border-[#7c3aed] text-white'
+                          : 'border-transparent text-gray-400 hover:border-[#7c3aed] hover:text-white'
                       }`}
                     >
                       {item.label}
@@ -61,7 +61,7 @@ export default function Layout({ children }) {
               <ThemeToggle />
               {isAuthenticated ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
+                  <span className="text-sm text-gray-400 hidden sm:block">
                     {user?.email}
                   </span>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>
